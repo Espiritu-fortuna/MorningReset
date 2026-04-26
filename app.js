@@ -19,8 +19,6 @@ const UI = {
   modeManualBtn: $('mode-manual-btn'),
   paceSlider: $('pace-slider'),
   paceValue: $('pace-value'),
-  installBtn: $('install-btn'),
-  installState: $('install-state'),
   voiceName: $('voice-name'),
   testVoiceBtn: $('test-voice-btn'),
   toggleCuesBtn: $('toggle-cues-btn'),
@@ -76,7 +74,6 @@ const app = {
   session: null,
   sessionStartedAt: 0,
   currentSegmentRemainingMs: null,
-  installPromptEvent: null,
   speechPrimed: false,
   audioManifest: null,
   currentAudio: null,
@@ -92,7 +89,6 @@ function init() {
   bindSession();
   initVoices();
   loadAudioManifest();
-  bindInstall();
   renderHome();
   document.addEventListener('visibilitychange', handleVisibility);
 }
@@ -142,27 +138,9 @@ function bindHome() {
     showView('home');
     renderHome();
   });
+  UI.openJumpBtn.disabled = true;
   UI.openJumpBtn.addEventListener('click', () => {
     if (app.session) UI.jumpDialog.showModal();
-  });
-}
-
-function bindInstall() {
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault();
-    app.installPromptEvent = event;
-    renderInstallState();
-  });
-  window.addEventListener('appinstalled', () => {
-    app.installPromptEvent = null;
-    renderInstallState(true);
-  });
-  UI.installBtn?.addEventListener('click', async () => {
-    if (!app.installPromptEvent) return;
-    app.installPromptEvent.prompt();
-    try { await app.installPromptEvent.userChoice; } catch (_) {}
-    app.installPromptEvent = null;
-    renderInstallState();
   });
 }
 
@@ -180,7 +158,7 @@ function bindSession() {
       } catch (_) {}
     }
     if (!app.paused) speechSynthesis.resume?.();
-    UI.pauseBtn.textContent = app.paused ? 'Resume' : 'Pause';
+    setPauseButtonState(app.paused ? 'play' : 'pause');
   });
   UI.prevBtn.addEventListener('click', () => jumpExercise(Math.max(0, (app.session?.exerciseIndex || 0) - 1)));
   UI.nextBtn.addEventListener('click', () => {
@@ -209,10 +187,10 @@ function renderHome() {
   UI.modeBadge.textContent = app.mode.toUpperCase();
   UI.paceValue.textContent = `${app.globalPace.toFixed(2)}×`;
   UI.toggleCuesBtn.textContent = app.voiceEnabled ? 'Voice on' : 'Voice off';
-  UI.startBtn.textContent = preset.restDay ? 'Open rest day' : 'Start session';
+  UI.startBtn.textContent = preset.restDay ? '☾ Open rest day' : '▶ Start session';
+  UI.openJumpBtn.disabled = true;
   renderExerciseSettings(preset);
   renderLastSession();
-  renderInstallState();
 }
 
 function renderExerciseSettings(preset) {
@@ -222,11 +200,13 @@ function renderExerciseSettings(preset) {
     const pace = getExercisePace(exercise.key);
     const wrap = document.createElement('div');
     wrap.className = 'exercise-setting';
+    const firstSegment = exercise.segments?.[0] || null;
+    const meta = firstSegment ? `${exercise.phase === 'warmup' ? 'Warm-up' : 'Main'} · ${segmentDescriptor(firstSegment)}` : (exercise.phase === 'warmup' ? 'Warm-up' : 'Main');
     wrap.innerHTML = `
       <div class="exercise-setting-header">
         <div>
           <div class="exercise-setting-title">${escapeHtml(exercise.name)}</div>
-          <small>${escapeHtml(exercise.phase === 'warmup' ? 'Warm-up' : 'Main routine')}</small>
+          <small>${escapeHtml(meta)}</small>
         </div>
         <strong>${pace.toFixed(2)}×</strong>
       </div>
@@ -271,9 +251,10 @@ async function startSession() {
   app.awaitingManual = false;
   app.sessionStartedAt = Date.now();
   app.session = { preset, timeline, exerciseIndex: 0, segmentIndex: 0, completedExercises: 0 };
-  UI.pauseBtn.textContent = 'Pause';
+  setPauseButtonState('pause');
   await primeSpeech();
   await acquireWakeLock();
+  UI.openJumpBtn.disabled = false;
   showView('session');
   renderJumpList();
   if (!preset.restDay) {
@@ -301,9 +282,10 @@ async function runCurrentPosition(token) {
   const nextExercise = app.session.timeline[app.session.exerciseIndex + 1] || null;
   const nextName = nextExercise ? nextExercise.name : 'Finish';
   const segmentTitle = segment.label || exercise.name;
+  const segmentMeta = segmentDescriptor(segment);
   setDisplay({
     phase: exercise.phase === 'warmup' ? 'WARM-UP' : (segment.type === 'rest' ? 'REST' : 'WORK'),
-    label: segment.type === 'rest' ? 'Rest block' : segmentTitle,
+    label: segment.type === 'rest' ? 'Rest block' : (segmentMeta ? `${segmentTitle} · ${segmentMeta}` : segmentTitle),
     name: exercise.name,
     cue: exercise.cue,
     number: segment.type === 'count' ? segment.reps : displayDuration(exercise, segment),
@@ -313,7 +295,7 @@ async function runCurrentPosition(token) {
   UI.progressText.textContent = `${app.session.exerciseIndex + 1} / ${app.session.timeline.length}`;
   UI.statusRoutine.textContent = app.session.preset.name;
   UI.statusExercise.textContent = exercise.name;
-  UI.statusSegment.textContent = segmentTitle;
+  UI.statusSegment.textContent = segmentMeta ? `${segmentTitle} · ${segmentMeta}` : segmentTitle;
 
   if (segment.type === 'rest') {
     await speak(segment.announce || `Rest. ${segment.label || ''}`.trim(), true, 1);
@@ -339,7 +321,7 @@ async function runCurrentPosition(token) {
 
 function waitForManualStart() {
   app.awaitingManual = true;
-  UI.pauseBtn.textContent = 'Start next';
+  setPauseButtonState('manual');
   UI.phaseBadge.textContent = 'MANUAL';
   UI.currentLabel.textContent = 'Awaiting your tap';
   UI.exerciseCue.textContent = 'Warm-ups auto-run. Main exercises wait for Next in manual mode.';
@@ -349,7 +331,7 @@ function startAwaitedManualExercise() {
   if (!app.awaitingManual) return;
   app.awaitingManual = false;
   if (app.session) app.session.pendingManualStart = false;
-  UI.pauseBtn.textContent = 'Pause';
+  setPauseButtonState('pause');
   runCurrentPosition(app.runnerToken).catch(() => {});
 }
 
@@ -532,7 +514,7 @@ function jumpExercise(index) {
   app.session.segmentIndex = 0;
   const chosen = app.session.timeline[index];
   app.session.pendingManualStart = Boolean(app.mode === 'manual' && chosen && chosen.phase === 'main');
-  UI.pauseBtn.textContent = app.session.pendingManualStart ? 'Start next' : 'Pause';
+  setPauseButtonState(app.session.pendingManualStart ? 'manual' : 'pause');
   runCurrentPosition(app.runnerToken).catch(() => {});
   if (UI.jumpDialog.open) UI.jumpDialog.close();
 }
@@ -562,6 +544,7 @@ function stopSession() {
   }
   releaseWakeLock();
   app.session = null;
+  UI.openJumpBtn.disabled = true;
   showView('home');
   renderHome();
 }
@@ -581,6 +564,7 @@ function completeSession() {
   UI.completeCopy.textContent = app.session?.preset?.restDay ? 'Rest day logged locally.' : 'Finished offline and ready to rerun anytime.';
   releaseWakeLock();
   app.session = null;
+  UI.openJumpBtn.disabled = true;
   showView('complete');
 }
 
@@ -744,14 +728,28 @@ async function handleVisibility() {
   }
 }
 
-function renderInstallState(installed = false) {
-  if (!UI.installBtn || !UI.installState) return;
-  const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
-  const isInstalled = installed || standalone;
-  UI.installBtn.classList.toggle('hidden', !app.installPromptEvent || isInstalled);
-  UI.installState.textContent = isInstalled
-    ? 'Installed, offline-capable, and ready for home-screen launch.'
-    : (app.installPromptEvent ? 'Install is ready. Use the button above.' : 'Installable from Chrome on your Pixel.');
+function setPauseButtonState(mode) {
+  if (!UI.pauseBtn) return;
+  if (mode === 'play') {
+    UI.pauseBtn.textContent = '▶';
+    UI.pauseBtn.title = 'Resume';
+    return;
+  }
+  if (mode === 'manual') {
+    UI.pauseBtn.textContent = '▶';
+    UI.pauseBtn.title = 'Start next';
+    return;
+  }
+  UI.pauseBtn.textContent = '⏸';
+  UI.pauseBtn.title = 'Pause';
+}
+
+function segmentDescriptor(segment) {
+  if (!segment) return '';
+  if (segment.type === 'count') return `${segment.reps} reps${segment.holdSec ? ` · ${segment.holdSec}s hold` : ''}`;
+  if (segment.type === 'timed' || segment.type === 'hold' || segment.type === 'rest') return `${segment.durationSec}s`;
+  if (segment.type === 'breath') return `${segment.cycles} cycles`;
+  return '';
 }
 
 function renderLastSession() {

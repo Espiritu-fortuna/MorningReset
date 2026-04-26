@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>MorningReset</title>
-  <meta name="theme-color" content="#05070b" />
+  <meta name="theme-color" content="#0c0902" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="MorningReset" />
@@ -19,82 +19,91 @@
         <div class="brand" id="brand-name">MorningReset</div>
         <div class="subbrand" id="brand-subtitle">Pixel-first guided routine</div>
       </div>
-      <button class="ghost-btn" id="open-jump-btn" type="button">Jump</button>
+      <button class="ghost-btn icon-btn" id="open-jump-btn" type="button" title="Jump">☰</button>
     </header>
 
     <main id="views">
       <section id="home-view" class="view active">
-        <div class="hero-card">
-          <div class="eyebrow">OFFLINE PWA</div>
+        <div class="hero-card compact-hero">
+          <div class="eyebrow">OFFLINE ROUTINE</div>
           <h1 id="routine-title">Morning routine</h1>
           <p id="routine-summary">Large-text, voice-guided training flow.</p>
-          <div class="hero-actions">
-            <button id="install-btn" class="ghost-btn hidden" type="button">Install app</button>
-            <div id="install-state" class="helper">Installable from Chrome on your Pixel.</div>
+          <button id="start-btn" class="primary-btn hero-start" type="button">▶ Start session</button>
+        </div>
+
+        <details class="panel detail-panel" id="preset-panel" open>
+          <summary>
+            <span>Routine</span>
+            <span class="detail-kicker">Preset</span>
+          </summary>
+          <div class="detail-body">
+            <label class="field-label" for="preset-select">Routine preset</label>
+            <select id="preset-select" class="select"></select>
+            <div id="preset-note" class="helper"></div>
           </div>
-        </div>
+        </details>
 
-        <div class="panel" id="preset-panel">
-          <label class="field-label" for="preset-select">Routine preset</label>
-          <select id="preset-select" class="select"></select>
-          <div id="preset-note" class="helper"></div>
-        </div>
-
-        <div class="panel">
-          <div class="field-row two-up">
-            <div>
-              <div class="field-label">Session mode</div>
-              <div class="segmented">
-                <button type="button" class="seg-btn active" data-mode="auto" id="mode-auto-btn">Auto</button>
-                <button type="button" class="seg-btn" data-mode="manual" id="mode-manual-btn">Manual</button>
+        <details class="panel detail-panel" open>
+          <summary>
+            <span>Session</span>
+            <span class="detail-kicker">Mode + pace</span>
+          </summary>
+          <div class="detail-body">
+            <div class="field-row two-up">
+              <div>
+                <div class="field-label">Session mode</div>
+                <div class="segmented">
+                  <button type="button" class="seg-btn active" data-mode="auto" id="mode-auto-btn">Auto</button>
+                  <button type="button" class="seg-btn" data-mode="manual" id="mode-manual-btn">Manual</button>
+                </div>
+              </div>
+              <div>
+                <div class="field-label">Global pace</div>
+                <div class="value-pill"><span id="pace-value">1.00×</span></div>
               </div>
             </div>
-            <div>
-              <div class="field-label">Global pace</div>
-              <div class="value-pill"><span id="pace-value">1.00×</span></div>
+            <input type="range" id="pace-slider" min="0.75" max="1.35" step="0.05" value="1" />
+            <div class="range-labels"><span>Slow</span><span>Neutral</span><span>Fast</span></div>
+          </div>
+        </details>
+
+        <details class="panel detail-panel">
+          <summary>
+            <span>Audio</span>
+            <span class="detail-kicker" id="voice-name">Loading…</span>
+          </summary>
+          <div class="detail-body">
+            <div class="helper">Bundled voice when available, soft timer cues when voice is off.</div>
+            <div class="field-row compact action-row">
+              <button class="ghost-btn" id="test-voice-btn" type="button">Test</button>
+              <button class="ghost-btn" id="toggle-cues-btn" type="button">Voice on</button>
             </div>
           </div>
-          <input type="range" id="pace-slider" min="0.75" max="1.35" step="0.05" value="1" />
-          <div class="range-labels"><span>Slower</span><span>Neutral</span><span>Faster</span></div>
-        </div>
+        </details>
 
-        <div class="panel">
-          <div class="field-row">
-            <div>
-              <div class="field-label">Voice</div>
-              <div class="helper">Smooth TTS optimized for Pixel install mode</div>
-            </div>
-            <div class="value-pill small"><span id="voice-name">Loading…</span></div>
+        <details class="panel detail-panel">
+          <summary>
+            <span>Per-exercise pace</span>
+            <span class="detail-kicker">Fine tune</span>
+          </summary>
+          <div class="detail-body">
+            <div class="helper">Adjust individual movements without changing the whole routine.</div>
+            <div id="exercise-settings" class="exercise-settings"></div>
           </div>
-          <div class="field-row compact">
-            <button class="ghost-btn" id="test-voice-btn" type="button">Test voice</button>
-            <button class="ghost-btn" id="toggle-cues-btn" type="button">Voice on</button>
-          </div>
-        </div>
+        </details>
 
-        <div class="panel">
-          <div class="field-row">
-            <div>
-              <div class="field-label">Per-exercise pace</div>
-              <div class="helper">Adjust individual movements without changing the whole routine.</div>
-            </div>
+        <details class="panel detail-panel">
+          <summary>
+            <span>Last session</span>
+            <span class="detail-kicker">Local only</span>
+          </summary>
+          <div class="detail-body">
+            <div class="helper" id="last-session-copy">No completed session saved yet.</div>
+            <div class="status-row"><span>Preset</span><strong id="last-session-preset">—</strong></div>
+            <div class="status-row"><span>Duration</span><strong id="last-session-duration">—</strong></div>
+            <div class="status-row"><span>Completed</span><strong id="last-session-at">—</strong></div>
           </div>
-          <div id="exercise-settings" class="exercise-settings"></div>
-        </div>
-
-        <div class="panel">
-          <div class="field-row">
-            <div>
-              <div class="field-label">Last session</div>
-              <div class="helper" id="last-session-copy">No completed session saved yet.</div>
-            </div>
-          </div>
-          <div class="status-row"><span>Preset</span><strong id="last-session-preset">—</strong></div>
-          <div class="status-row"><span>Duration</span><strong id="last-session-duration">—</strong></div>
-          <div class="status-row"><span>Completed at</span><strong id="last-session-at">—</strong></div>
-        </div>
-
-        <button id="start-btn" class="primary-btn" type="button">Start session</button>
+        </details>
       </section>
 
       <section id="session-view" class="view">
@@ -114,19 +123,19 @@
           <div class="next-copy" id="next-copy">Up next: —</div>
         </div>
 
-        <div class="panel status-panel">
+        <div class="panel status-panel slim-status">
           <div class="status-row"><span>Routine</span><strong id="status-routine">—</strong></div>
           <div class="status-row"><span>Exercise</span><strong id="status-exercise">—</strong></div>
           <div class="status-row"><span>Segment</span><strong id="status-segment">—</strong></div>
         </div>
 
-        <div class="controls-grid">
-          <button class="control-btn" id="prev-btn" type="button">Previous</button>
-          <button class="control-btn accent" id="pause-btn" type="button">Pause</button>
-          <button class="control-btn" id="next-btn" type="button">Next</button>
-          <button class="control-btn" id="restart-btn" type="button">Restart</button>
-          <button class="control-btn danger" id="skip-btn" type="button">Skip</button>
-          <button class="control-btn" id="stop-btn" type="button">Stop</button>
+        <div class="controls-grid icons-only">
+          <button class="control-btn" id="prev-btn" type="button" title="Previous">⏮</button>
+          <button class="control-btn accent" id="pause-btn" type="button" title="Pause">⏸</button>
+          <button class="control-btn" id="next-btn" type="button" title="Next">⏭</button>
+          <button class="control-btn" id="restart-btn" type="button" title="Restart">↺</button>
+          <button class="control-btn danger" id="skip-btn" type="button" title="Skip">⇥</button>
+          <button class="control-btn" id="stop-btn" type="button" title="Stop">■</button>
         </div>
       </section>
 
@@ -141,7 +150,7 @@
           <div class="status-row"><span>Exercises</span><strong id="complete-exercises">—</strong></div>
           <div class="status-row"><span>Total time</span><strong id="complete-duration">—</strong></div>
         </div>
-        <button id="done-btn" class="primary-btn" type="button">Back home</button>
+        <button id="done-btn" class="primary-btn" type="button">↩ Home</button>
       </section>
     </main>
   </div>

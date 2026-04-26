@@ -144,12 +144,17 @@
   }
 
   const warmups = [
-    { key: 'arm-circles-forward', phase: 'warmup', name: 'Arm Circles, Forward', cue: 'Small to large circles.', manualEligible: false, segments: [timed('Forward', 30, { announce: 'Warm-up. Arm circles forward.' })] },
-    { key: 'arm-circles-backward', phase: 'warmup', name: 'Arm Circles, Backward', cue: 'Reverse direction.', manualEligible: false, segments: [timed('Backward', 30, { announce: 'Arm circles backward.' })] },
-    { key: 'shoulder-rolls-shrugs', phase: 'warmup', name: 'Shoulder Rolls and Shrugs', cue: 'Ten forward rolls, ten backward rolls, ten shrugs.', manualEligible: false, segments: [count('Thirty total reps', 30, 1.0, { announce: 'Shoulder rolls and shrugs.' })] },
-    { key: 'hip-circles', phase: 'warmup', name: 'Standing Hip Circles', cue: 'Raise the knee and draw smooth circles.', manualEligible: false, segments: [count('Left, first direction', 10, 1.4, { announce: 'Standing hip circles. Left side, first direction.' }), count('Left, reverse direction', 10, 1.4, { announce: 'Left side, reverse direction.' }), count('Right, first direction', 10, 1.4, { announce: 'Right side, first direction.' }), count('Right, reverse direction', 10, 1.4, { announce: 'Right side, reverse direction.' })] },
-    { key: 'knee-pulls', phase: 'warmup', name: 'Standing Knee Pulls', cue: 'Alternate sides, gentle pull toward the chest.', manualEligible: false, segments: [timed('Alternating', 30, { announce: 'Standing knee pulls, alternating.' })] },
-    { key: 'heel-raises', phase: 'warmup', name: 'Heel Raises', cue: 'Rise onto the balls of the feet, control down.', manualEligible: false, segments: [count('Twenty reps', 20, 1.8, { announce: 'Heel raises.' })] }
+    { key: 'arm-circles-forward', phase: 'warmup', name: 'Arm Circles', cue: 'Small to large circles.', manualEligible: false, segments: [timed('Forward · 30 sec', 30, { announce: 'Warm-up. Arm circles forward.' })] },
+    { key: 'arm-circles-backward', phase: 'warmup', name: 'Arm Circles', cue: 'Reverse direction.', manualEligible: false, segments: [timed('Backward · 30 sec', 30, { announce: 'Arm circles backward.' })] },
+    { key: 'shoulder-rolls-forward', phase: 'warmup', name: 'Shoulder Rolls', cue: 'Controlled forward circles.', manualEligible: false, segments: [count('Forward · 10 reps', 10, 1.0, { announce: 'Shoulder rolls forward.' })] },
+    { key: 'shoulder-rolls-backward', phase: 'warmup', name: 'Shoulder Rolls', cue: 'Reverse with the same control.', manualEligible: false, segments: [count('Backward · 10 reps', 10, 1.0, { announce: 'Shoulder rolls backward.' })] },
+    { key: 'shoulder-shrugs', phase: 'warmup', name: 'Shoulder Shrugs', cue: 'Lift and lower without rushing.', manualEligible: false, segments: [count('Shrugs · 10 reps', 10, 1.0, { announce: 'Shoulder shrugs.' })] },
+    { key: 'hip-circles-left-forward', phase: 'warmup', name: 'Standing Hip Circles', cue: 'Raise the knee and draw smooth circles.', manualEligible: false, segments: [count('Left forward · 10 reps', 10, 1.4, { announce: 'Standing hip circles. Left side, first direction.' })] },
+    { key: 'hip-circles-left-reverse', phase: 'warmup', name: 'Standing Hip Circles', cue: 'Same leg, reverse direction.', manualEligible: false, segments: [count('Left reverse · 10 reps', 10, 1.4, { announce: 'Left side, reverse direction.' })] },
+    { key: 'hip-circles-right-forward', phase: 'warmup', name: 'Standing Hip Circles', cue: 'Switch sides, first direction.', manualEligible: false, segments: [count('Right forward · 10 reps', 10, 1.4, { announce: 'Right side, first direction.' })] },
+    { key: 'hip-circles-right-reverse', phase: 'warmup', name: 'Standing Hip Circles', cue: 'Same side, reverse direction.', manualEligible: false, segments: [count('Right reverse · 10 reps', 10, 1.4, { announce: 'Right side, reverse direction.' })] },
+    { key: 'knee-pulls', phase: 'warmup', name: 'Standing Knee Pulls', cue: 'Alternate sides, gentle pull toward the chest.', manualEligible: false, segments: [timed('Alternating · 30 sec', 30, { announce: 'Standing knee pulls, alternating.' })] },
+    { key: 'heel-raises', phase: 'warmup', name: 'Heel Raises', cue: 'Rise onto the balls of the feet, control down.', manualEligible: false, segments: [count('20 reps', 20, 1.8, { announce: 'Heel raises.' })] }
   ];
 
   window.ROUTINE_CONFIG = {
