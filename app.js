@@ -166,7 +166,7 @@ function bindSession() {
     jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1));
   });
   UI.restartBtn.addEventListener('click', () => jumpExercise(app.session?.exerciseIndex || 0));
-  UI.skipBtn.addEventListener('click', () => jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1)));
+  UI.skipBtn?.addEventListener('click', () => jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1)));
   UI.stopBtn.addEventListener('click', stopSession);
 }
 
@@ -570,6 +570,7 @@ function completeSession() {
 
 function showView(which) {
   [UI.homeView, UI.sessionView, UI.completeView].forEach((view) => view.classList.remove('active'));
+  UI.openJumpBtn.classList.toggle('hidden', which !== 'session');
   if (which === 'home') UI.homeView.classList.add('active');
   else if (which === 'session') UI.sessionView.classList.add('active');
   else UI.completeView.classList.add('active');
