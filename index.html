@@ -16,8 +16,8 @@
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="brand" id="brand-name">MorningReset</div>
-        <div class="subbrand" id="brand-subtitle">Pixel-first guided routine</div>
+        <div class="brand" id="brand-name">☀ MORNING RESET</div>
+        <div class="subbrand" id="brand-subtitle">Daily morning flow</div>
       </div>
       <button class="ghost-btn icon-btn hidden" id="open-jump-btn" type="button" title="Jump">☰</button>
     </header>
@@ -112,7 +112,7 @@
           <div class="progress-copy"><span id="progress-text">0 / 0</span><span id="mode-badge">AUTO</span></div>
         </div>
 
-        <div class="panel giant-panel">
+        <div class="panel giant-panel session-core">
           <div class="current-label" id="current-label">Lead-in</div>
           <h2 id="exercise-name">Session ready</h2>
           <p id="exercise-cue" class="exercise-cue">Press start when you are ready.</p>
@@ -120,13 +120,12 @@
             <div class="timer-number" id="timer-number">5</div>
             <div class="timer-unit" id="timer-unit">SECONDS</div>
           </div>
-          <div class="next-copy" id="next-copy">Up next: —</div>
-        </div>
-
-        <div class="panel status-panel slim-status">
-          <div class="status-row"><span>Routine</span><strong id="status-routine">—</strong></div>
-          <div class="status-row"><span>Exercise</span><strong id="status-exercise">—</strong></div>
-          <div class="status-row"><span>Segment</span><strong id="status-segment">—</strong></div>
+          <div class="next-copy hidden" id="next-copy">Up next: —</div>
+          <div class="hidden">
+            <strong id="status-routine">—</strong>
+            <strong id="status-exercise">—</strong>
+            <strong id="status-segment">—</strong>
+          </div>
         </div>
 
         <div class="controls-grid icons-only">

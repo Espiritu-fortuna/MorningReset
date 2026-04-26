@@ -159,9 +159,11 @@
 
   window.ROUTINE_CONFIG = {
     appName: 'MorningReset',
+    brandLabel: '☀ MORNING RESET',
     shortName: 'Morning',
     themeColor: '#05070b',
     subtitle: 'Same morning every day',
+    headerSubtitle: 'Daily morning flow',
     introLeadInSec: 5,
     announcementDelaySec: 2,
     defaultGlobalPace: 1,

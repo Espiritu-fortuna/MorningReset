@@ -82,8 +82,8 @@ const app = {
 init();
 
 function init() {
-  UI.brandName.textContent = CFG.appName;
-  UI.brandSubtitle.textContent = CFG.subtitle || 'Guided routine';
+  UI.brandName.textContent = CFG.brandLabel || CFG.appName;
+  UI.brandSubtitle.textContent = CFG.headerSubtitle || CFG.subtitle || 'Guided routine';
   populatePresets();
   bindHome();
   bindSession();
@@ -293,9 +293,9 @@ async function runCurrentPosition(token) {
     next: `Up next: ${nextName}`
   });
   UI.progressText.textContent = `${app.session.exerciseIndex + 1} / ${app.session.timeline.length}`;
-  UI.statusRoutine.textContent = app.session.preset.name;
-  UI.statusExercise.textContent = exercise.name;
-  UI.statusSegment.textContent = segmentMeta ? `${segmentTitle} · ${segmentMeta}` : segmentTitle;
+  if (UI.statusRoutine) UI.statusRoutine.textContent = app.session.preset.name;
+  if (UI.statusExercise) UI.statusExercise.textContent = exercise.name;
+  if (UI.statusSegment) UI.statusSegment.textContent = segmentMeta ? `${segmentTitle} · ${segmentMeta}` : segmentTitle;
 
   if (segment.type === 'rest') {
     await speak(segment.announce || `Rest. ${segment.label || ''}`.trim(), true, 1);
@@ -583,7 +583,7 @@ function setDisplay({ phase, label, name, cue, number, unit, next }) {
   UI.exerciseCue.textContent = cue;
   UI.timerNumber.textContent = String(number);
   UI.timerUnit.textContent = unit;
-  UI.nextCopy.textContent = next || '';
+  if (UI.nextCopy) UI.nextCopy.textContent = next || '';
 }
 
 async function loadAudioManifest() {
@@ -636,7 +636,7 @@ function bundledAudioPath(text) {
   return manifest.phrases?.[text] || null;
 }
 
-function beep(freq = 760, volume = 0.04, durationSec = 0.05) {
+function beep(freq = 760, volume = 0.1, durationSec = 0.08) {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
