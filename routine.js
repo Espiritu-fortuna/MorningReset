@@ -28,11 +28,11 @@
         cue: 'Tuck tailbone first. Lift. Hard squeeze. No hyperextension.',
         manualEligible: true,
         segments: [
-          count('Set 1', 12, 4.4, { announce: 'Weighted Glute Bridge. Set 1. Three second squeeze at the top of every rep.' }),
+          count('Set 1', 12, 4.8, { announce: 'Weighted Glute Bridge. Set 1. Three second squeeze at the top of every rep.', holdSec: 3 }),
           rest(60, { announce: 'Rest. Set 2 of glute bridges is next.' }),
-          count('Set 2', 12, 4.4, { announce: 'Weighted Glute Bridge. Set 2.' }),
+          count('Set 2', 12, 4.8, { announce: 'Weighted Glute Bridge. Set 2.', holdSec: 3 }),
           rest(60, { announce: 'Rest. Set 3 of glute bridges is next.' }),
-          count('Set 3', 12, 4.4, { announce: 'Weighted Glute Bridge. Set 3.' })
+          count('Set 3', 12, 4.8, { announce: 'Weighted Glute Bridge. Set 3.', holdSec: 3 })
         ]
       },
       {
@@ -105,11 +105,11 @@
         cue: 'Posterior pelvic tilt first. Longer squeeze at the top.',
         manualEligible: true,
         segments: [
-          count('Set 1', 12, 5.2, { announce: 'Glute Bridge. Set 1. Slow controlled tempo.' }),
+          count('Set 1', 12, 5.6, { announce: 'Glute Bridge. Set 1. Slow controlled tempo.', holdSec: 3 }),
           rest(60, { announce: 'Rest. Set 2 is next.' }),
-          count('Set 2', 12, 5.2, { announce: 'Glute Bridge. Set 2.' }),
+          count('Set 2', 12, 5.6, { announce: 'Glute Bridge. Set 2.', holdSec: 3 }),
           rest(60, { announce: 'Rest. Set 3 is next.' }),
-          count('Set 3', 12, 5.2, { announce: 'Glute Bridge. Set 3.' })
+          count('Set 3', 12, 5.6, { announce: 'Glute Bridge. Set 3.', holdSec: 3 })
         ]
       },
       {

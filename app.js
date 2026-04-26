@@ -255,9 +255,7 @@ function buildTimeline(preset) {
   for (let i = 0; i < base.length - 1; i += 1) {
     const current = base[i];
     const next = base[i + 1];
-    if (current.phase === 'warmup' && next.phase === 'main') {
-      current.segments.push({ type: 'rest', durationSec: CFG.defaultRestSec || 60, label: 'Transition rest', announce: `Warm-up complete. Next: ${next.name}. Rest starts now.` });
-    } else if (current.phase === 'main' && next.phase === 'main') {
+    if (current.phase === 'main' && next.phase === 'main') {
       current.segments.push({ type: 'rest', durationSec: CFG.defaultRestSec || 60, label: 'Exercise break', announce: `Next: ${next.name}. Rest starts now.` });
     }
   }
@@ -324,8 +322,8 @@ async function runCurrentPosition(token) {
     return runCurrentPosition(token);
   }
 
-  const spokenMs = await speak(segment.announce || exercise.name, true, 1);
-  await runAnnouncementPrep(segment, token, spokenMs);
+  await speak(segment.announce || exercise.name, true, 1);
+  await runAnnouncementPrep(segment, token);
 
   if (segment.type === 'count') {
     await runCountSegment(exercise, segment, token);
@@ -369,21 +367,55 @@ function stepForward() {
   app.session.pendingManualStart = Boolean(app.mode === 'manual' && upcoming && upcoming.phase === 'main');
 }
 
-function advanceExercise(token) {
+async function advanceExercise(token) {
+  const finished = app.session?.timeline?.[app.session.exerciseIndex] || null;
   stepForward();
+  const upcoming = app.session?.timeline?.[app.session.exerciseIndex] || null;
+  if (finished && upcoming && finished.phase === 'warmup' && upcoming.phase === 'main') {
+    await runWarmupToMainTransition(upcoming, token);
+  }
   return runCurrentPosition(token);
 }
 
-async function runAnnouncementPrep(segment, token, spokenMs = 0) {
-  const prepMs = Math.max(0, CFG.announcementDelaySec * 1000);
-  if (!prepMs) return;
+async function runWarmupToMainTransition(upcoming, token) {
+  setDisplay({
+    phase: 'READY',
+    label: 'Warm-up complete',
+    name: upcoming.name,
+    cue: upcoming.cue || 'Get into position.',
+    number: 5,
+    unit: 'PREP',
+    next: `Up next: ${upcoming.name}`
+  });
+  UI.statusExercise.textContent = upcoming.name;
+  UI.statusSegment.textContent = 'Transition';
+  await speak(`Warm-up complete. Next: ${upcoming.name}.`, true, 1);
+  await runPrepCountdown(5, token, 'PREP');
+}
+
+async function runAnnouncementPrep(segment, token) {
+  const prepSec = Math.max(0, CFG.announcementDelaySec || 0);
+  if (!prepSec) return;
   UI.phaseBadge.textContent = segment.type === 'rest' ? 'REST' : 'READY';
   UI.currentLabel.textContent = segment.type === 'count' ? 'Starts in' : 'Get set';
-  await waitMs(prepMs, token, CFG.announcementDelaySec, 'PREP');
-  if (segment.type === 'count') {
-    UI.phaseBadge.textContent = 'WORK';
+  await runPrepCountdown(prepSec, token, 'PREP');
+  if (segment.type === 'count' || segment.type === 'timed' || segment.type === 'hold' || segment.type === 'breath') {
+    UI.phaseBadge.textContent = segment.type === 'rest' ? 'REST' : 'WORK';
     UI.currentLabel.textContent = segment.label || 'Work';
   }
+}
+
+async function runPrepCountdown(seconds, token, unit = 'PREP') {
+  for (let remaining = seconds; remaining > 0; remaining -= 1) {
+    ensureAlive(token);
+    UI.timerNumber.textContent = String(remaining);
+    UI.timerUnit.textContent = unit;
+    let spokenMs = 0;
+    if (remaining <= Math.min(3, seconds)) spokenMs = await speak(String(remaining), true, 1.0);
+    await waitRemaining(1000, spokenMs, token);
+  }
+  UI.timerNumber.textContent = '0';
+  UI.timerUnit.textContent = unit;
 }
 
 async function runCountSegment(exercise, segment, token) {
@@ -391,10 +423,27 @@ async function runCountSegment(exercise, segment, token) {
   const perRepMs = Math.max(450, (segment.paceSec * 1000) / pace);
   for (let rep = 1; rep <= segment.reps; rep++) {
     ensureAlive(token);
+    const repStartedAt = Date.now();
     UI.timerNumber.textContent = String(rep);
     UI.timerUnit.textContent = 'REPS';
-    const spokenMs = await speak(String(rep), true, 1.05);
-    await waitRemaining(perRepMs, spokenMs, token);
+    await speak(String(rep), true, 1.05);
+    if (segment.holdSec) {
+      await runRepHold(segment, token);
+    }
+    const elapsedMs = Date.now() - repStartedAt;
+    await waitRemaining(perRepMs, elapsedMs, token);
+  }
+}
+
+async function runRepHold(segment, token) {
+  const holdSec = Math.max(1, Math.round(segment.holdSec));
+  for (let remaining = holdSec; remaining > 0; remaining -= 1) {
+    ensureAlive(token);
+    UI.timerNumber.textContent = String(remaining);
+    UI.timerUnit.textContent = 'HOLD';
+    let spokenMs = 0;
+    if (remaining <= Math.min(3, holdSec)) spokenMs = await speak(String(remaining), true, 1.0);
+    await waitRemaining(1000, spokenMs, token);
   }
 }
 
@@ -421,6 +470,7 @@ async function runBreathSegment(segment, token) {
     UI.exerciseCue.textContent = 'Inhale through the nose, then long controlled exhale.';
     const inhaleSpokenMs = await speak('Inhale', true, 0.98);
     await waitRemaining((segment.inhaleSec * 1000) / pace, inhaleSpokenMs, token);
+    UI.timerUnit.textContent = 'EXHALE';
     const exhaleSpokenMs = await speak('Exhale', true, 0.95);
     await waitRemaining((segment.exhaleSec * 1000) / pace, exhaleSpokenMs, token);
   }
