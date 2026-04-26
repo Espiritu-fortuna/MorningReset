@@ -78,6 +78,8 @@ const app = {
   currentSegmentRemainingMs: null,
   installPromptEvent: null,
   speechPrimed: false,
+  audioManifest: null,
+  currentAudio: null,
 };
 
 init();
@@ -89,6 +91,7 @@ function init() {
   bindHome();
   bindSession();
   initVoices();
+  loadAudioManifest();
   bindInstall();
   renderHome();
   document.addEventListener('visibilitychange', handleVisibility);
@@ -170,6 +173,13 @@ function bindSession() {
       return;
     }
     app.paused = !app.paused;
+    if (app.currentAudio) {
+      try {
+        if (app.paused) app.currentAudio.pause();
+        else app.currentAudio.play().catch(() => {});
+      } catch (_) {}
+    }
+    if (!app.paused) speechSynthesis.resume?.();
     UI.pauseBtn.textContent = app.paused ? 'Resume' : 'Pause';
   });
   UI.prevBtn.addEventListener('click', () => jumpExercise(Math.max(0, (app.session?.exerciseIndex || 0) - 1)));
@@ -467,6 +477,10 @@ function stopSession() {
   app.paused = false;
   app.awaitingManual = false;
   speechSynthesis?.cancel?.();
+  if (app.currentAudio) {
+    try { app.currentAudio.pause(); } catch (_) {}
+    app.currentAudio = null;
+  }
   releaseWakeLock();
   app.session = null;
   showView('home');
@@ -508,9 +522,20 @@ function setDisplay({ phase, label, name, cue, number, unit, next }) {
   UI.nextCopy.textContent = next || '';
 }
 
+async function loadAudioManifest() {
+  try {
+    const res = await fetch('./audio/manifest.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    app.audioManifest = await res.json();
+    if (app.audioManifest?.engine) {
+      UI.voiceName.textContent = `Bundled audio (${app.audioManifest.engine})`;
+    }
+  } catch (_) {}
+}
+
 function initVoices() {
   if (!window.speechSynthesis) {
-    UI.voiceName.textContent = 'Unavailable';
+    if (!app.audioManifest) UI.voiceName.textContent = 'Unavailable';
     return;
   }
   const load = () => {
@@ -521,7 +546,7 @@ function initVoices() {
       || app.voices.find(v => v.lang?.startsWith('en') && v.name?.includes('Google'))
       || app.voices.find(v => v.lang?.startsWith('en'))
       || app.voices[0];
-    UI.voiceName.textContent = app.selectedVoice?.name || 'System voice';
+    if (!app.audioManifest) UI.voiceName.textContent = app.selectedVoice?.name || 'System voice';
   };
   load();
   speechSynthesis.addEventListener('voiceschanged', load);
@@ -540,8 +565,40 @@ async function primeSpeech() {
   app.speechPrimed = true;
 }
 
+function bundledAudioPath(text) {
+  if (!app.audioManifest || !text) return null;
+  const manifest = app.audioManifest;
+  if (/^\d+$/.test(String(text)) && manifest.numbers?.[String(text)]) return manifest.numbers[String(text)];
+  return manifest.phrases?.[text] || null;
+}
+
+async function playBundled(path) {
+  return new Promise((resolve) => {
+    try {
+      const audio = new Audio(path);
+      app.currentAudio = audio;
+      audio.preload = 'auto';
+      audio.onended = () => { if (app.currentAudio === audio) app.currentAudio = null; resolve(); };
+      audio.onerror = () => { if (app.currentAudio === audio) app.currentAudio = null; resolve(); };
+      audio.play().catch(() => { if (app.currentAudio === audio) app.currentAudio = null; resolve(); });
+    } catch (_) {
+      app.currentAudio = null;
+      resolve();
+    }
+  });
+}
+
 async function speak(text, cancel = true, rate = 1) {
-  if (!app.voiceEnabled || !window.speechSynthesis || !text) return;
+  if (!app.voiceEnabled || !text) return;
+  const bundled = bundledAudioPath(text);
+  if (bundled) {
+    if (app.currentAudio && cancel) {
+      try { app.currentAudio.pause(); } catch (_) {}
+      app.currentAudio = null;
+    }
+    return playBundled(bundled);
+  }
+  if (!window.speechSynthesis) return;
   speechSynthesis.resume?.();
   if (cancel) speechSynthesis.cancel();
   return new Promise((resolve) => {
