@@ -406,19 +406,27 @@ async function runPrepCountdown(seconds, token, unit = 'PREP') {
 async function runCountSegment(exercise, segment, token) {
   const pace = app.globalPace * getExercisePace(exercise.key);
   const perRepMs = Math.max(450, (segment.paceSec * 1000) / pace);
+  const alternatingSides = Boolean(segment.alternatingSides);
+  const sides = alternatingSides ? ['Right', 'Left'] : [null];
+  const baseLabel = segment.label || exercise.name;
   for (let rep = 1; rep <= segment.reps; rep++) {
-    ensureAlive(token);
-    const repStartedAt = Date.now();
-    UI.timerNumber.textContent = String(rep);
-    UI.timerUnit.textContent = 'REPS';
-    if (segment.holdSec) {
-      beep(860, 0.12, 0.07);
-      await runRepHold(segment, token);
-    } else {
-      await speak(String(rep), true, 1.05);
+    for (const side of sides) {
+      ensureAlive(token);
+      const repStartedAt = Date.now();
+      UI.timerNumber.textContent = String(rep);
+      UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
+      if (side) UI.currentLabel.textContent = `${baseLabel} · ${side}`;
+      if (segment.holdSec) {
+        beep(860, 0.12, 0.07);
+        await runRepHold(segment, token);
+      } else if (alternatingSides) {
+        beep(860, 0.12, 0.07);
+      } else {
+        await speak(String(rep), true, 1.05);
+      }
+      const elapsedMs = Date.now() - repStartedAt;
+      await waitRemaining(perRepMs, elapsedMs, token);
     }
-    const elapsedMs = Date.now() - repStartedAt;
-    await waitRemaining(perRepMs, elapsedMs, token);
   }
 }
 
@@ -779,7 +787,10 @@ function setPauseButtonState(mode) {
 
 function segmentDescriptor(segment) {
   if (!segment) return '';
-  if (segment.type === 'count') return `${segment.reps} reps${segment.holdSec ? ` · ${segment.holdSec}s hold` : ''}`;
+  if (segment.type === 'count') {
+    const repsText = segment.alternatingSides ? `${segment.reps} reps per side` : `${segment.reps} reps`;
+    return `${repsText}${segment.holdSec ? ` · ${segment.holdSec}s hold` : ''}`;
+  }
   if (segment.type === 'timed' || segment.type === 'hold' || segment.type === 'rest') return `${segment.durationSec}s`;
   if (segment.type === 'breath') return `${segment.cycles} cycles`;
   return '';

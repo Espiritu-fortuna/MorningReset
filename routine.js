@@ -14,11 +14,11 @@
         cue: 'Torso tall. Step backward. Drive through the front heel.',
         manualEligible: true,
         segments: [
-          count('Set 1', 20, 3.2, { announce: 'Dumbbell Reverse Lunge. Set 1. Twenty total reps, alternating.' }),
+          count('Set 1', 8, 3.2, { announce: 'Dumbbell Reverse Lunge. Set 1. Eight reps per side, alternating.', alternatingSides: true }),
           rest(60, { announce: 'Rest. Set 2 of reverse lunges is next.' }),
-          count('Set 2', 20, 3.2, { announce: 'Reverse Lunge. Set 2. Twenty total reps, alternating.' }),
+          count('Set 2', 8, 3.2, { announce: 'Reverse Lunge. Set 2. Eight reps per side, alternating.', alternatingSides: true }),
           rest(60, { announce: 'Rest. Set 3 of reverse lunges is next.' }),
-          count('Set 3', 20, 3.2, { announce: 'Reverse Lunge. Set 3. Twenty total reps, alternating.' })
+          count('Set 3', 8, 3.2, { announce: 'Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true })
         ]
       },
       {
@@ -91,11 +91,11 @@
         cue: 'Same pattern, slower control, longer holds at the bottom.',
         manualEligible: true,
         segments: [
-          count('Set 1', 20, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 1. Hold each rep a little longer.' }),
+          count('Set 1', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 1. Eight reps per side, alternating, with longer holds.', alternatingSides: true }),
           rest(60, { announce: 'Rest. Set 2 is next.' }),
-          count('Set 2', 20, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 2.' }),
+          count('Set 2', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 2. Eight reps per side, alternating.', alternatingSides: true }),
           rest(60, { announce: 'Rest. Set 3 is next.' }),
-          count('Set 3', 20, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 3.' })
+          count('Set 3', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true })
         ]
       },
       {
