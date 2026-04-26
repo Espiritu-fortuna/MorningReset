@@ -269,9 +269,8 @@ async function startSession() {
 
 async function runLeadIn(token) {
   const firstExercise = app.session?.timeline?.[0] || null;
-  const introText = firstExercise
-    ? `${app.session?.preset?.name || CFG.appName}. Starting with ${firstExercise.name}.`
-    : `${app.session?.preset?.name || CFG.appName}. Let's begin.`;
+  const firstSegment = firstExercise?.segments?.[0] || null;
+  const introText = firstSegment?.announce || firstExercise?.name || `${app.session?.preset?.name || CFG.appName}.`;
   setDisplay({ phase: 'READY', label: '', name: app.session?.preset?.name || CFG.appName, cue: 'Get set.', number: '', unit: '', next: '' });
   const spokenMs = await speak(introText, true, 1);
   app.skipNextSegmentIntro = Boolean(firstExercise);
@@ -412,9 +411,11 @@ async function runCountSegment(exercise, segment, token) {
     const repStartedAt = Date.now();
     UI.timerNumber.textContent = String(rep);
     UI.timerUnit.textContent = 'REPS';
-    await speak(String(rep), true, 1.05);
     if (segment.holdSec) {
+      beep(860, 0.12, 0.07);
       await runRepHold(segment, token);
+    } else {
+      await speak(String(rep), true, 1.05);
     }
     const elapsedMs = Date.now() - repStartedAt;
     await waitRemaining(perRepMs, elapsedMs, token);
@@ -427,7 +428,7 @@ async function runRepHold(segment, token) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remaining);
     UI.timerUnit.textContent = 'HOLD';
-    fireTimerCue(remaining, { loudFinal: true, voiceFinal: true });
+    fireTimerCue(remaining, { loudFinal: true, voiceFinal: false });
     await waitMs(1000, token);
   }
 }
@@ -438,7 +439,7 @@ async function runCountdownSegment(segment, token, isRest) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remainingSec);
     UI.timerUnit.textContent = 'SECONDS';
-    fireTimerCue(remainingSec, { loudFinal: !isRest, voiceFinal: !isRest, rest: isRest });
+    fireTimerCue(remainingSec, { loudFinal: !isRest, voiceFinal: false, rest: isRest });
     await waitMs(1000, token);
     remainingSec -= 1;
   }
