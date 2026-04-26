@@ -381,8 +381,8 @@ async function runCountSegment(exercise, segment, token) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(rep);
     UI.timerUnit.textContent = 'REPS';
-    await speak(String(rep), true, 1.05);
-    await waitMs(perRepMs, token);
+    const spokenMs = await speak(String(rep), true, 1.05);
+    await waitRemaining(perRepMs, spokenMs, token);
   }
 }
 
@@ -392,8 +392,9 @@ async function runCountdownSegment(segment, token, isRest) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remainingSec);
     UI.timerUnit.textContent = 'SECONDS';
-    if (!isRest && remainingSec <= 3) await speak(String(remainingSec), true, 1.0);
-    await waitMs(1000, token);
+    let spokenMs = 0;
+    if (!isRest && remainingSec <= 3) spokenMs = await speak(String(remainingSec), true, 1.0);
+    await waitRemaining(1000, spokenMs, token);
     remainingSec -= 1;
   }
   UI.timerNumber.textContent = '0';
@@ -406,10 +407,10 @@ async function runBreathSegment(segment, token) {
     UI.timerNumber.textContent = String(i);
     UI.timerUnit.textContent = 'BREATH';
     UI.exerciseCue.textContent = 'Inhale through the nose, then long controlled exhale.';
-    await speak('Inhale', true, 0.98);
-    await waitMs((segment.inhaleSec * 1000) / pace, token);
-    await speak('Exhale', true, 0.95);
-    await waitMs((segment.exhaleSec * 1000) / pace, token);
+    const inhaleSpokenMs = await speak('Inhale', true, 0.98);
+    await waitRemaining((segment.inhaleSec * 1000) / pace, inhaleSpokenMs, token);
+    const exhaleSpokenMs = await speak('Exhale', true, 0.95);
+    await waitRemaining((segment.exhaleSec * 1000) / pace, exhaleSpokenMs, token);
   }
 }
 
@@ -437,6 +438,11 @@ async function waitMs(ms, token, countdown = null, unit = '') {
       UI.timerUnit.textContent = unit;
     }
   }
+}
+
+async function waitRemaining(targetMs, spentMs, token, countdown = null, unit = '') {
+  const remaining = Math.max(0, targetMs - Math.max(0, spentMs || 0));
+  await waitMs(remaining, token, countdown, unit);
 }
 
 function ensureAlive(token) {
@@ -574,22 +580,32 @@ function bundledAudioPath(text) {
 
 async function playBundled(path) {
   return new Promise((resolve) => {
+    const startedAt = Date.now();
     try {
       const audio = new Audio(path);
       app.currentAudio = audio;
       audio.preload = 'auto';
-      audio.onended = () => { if (app.currentAudio === audio) app.currentAudio = null; resolve(); };
-      audio.onerror = () => { if (app.currentAudio === audio) app.currentAudio = null; resolve(); };
-      audio.play().catch(() => { if (app.currentAudio === audio) app.currentAudio = null; resolve(); });
+      audio.onended = () => {
+        if (app.currentAudio === audio) app.currentAudio = null;
+        resolve(Date.now() - startedAt);
+      };
+      audio.onerror = () => {
+        if (app.currentAudio === audio) app.currentAudio = null;
+        resolve(0);
+      };
+      audio.play().catch(() => {
+        if (app.currentAudio === audio) app.currentAudio = null;
+        resolve(0);
+      });
     } catch (_) {
       app.currentAudio = null;
-      resolve();
+      resolve(0);
     }
   });
 }
 
 async function speak(text, cancel = true, rate = 1) {
-  if (!app.voiceEnabled || !text) return;
+  if (!app.voiceEnabled || !text) return 0;
   const bundled = bundledAudioPath(text);
   if (bundled) {
     if (app.currentAudio && cancel) {
@@ -598,17 +614,18 @@ async function speak(text, cancel = true, rate = 1) {
     }
     return playBundled(bundled);
   }
-  if (!window.speechSynthesis) return;
+  if (!window.speechSynthesis) return 0;
   speechSynthesis.resume?.();
   if (cancel) speechSynthesis.cancel();
   return new Promise((resolve) => {
+    const startedAt = Date.now();
     const u = new SpeechSynthesisUtterance(text);
     u.voice = app.selectedVoice;
     u.rate = rate;
     u.pitch = 1;
     u.volume = 1;
-    u.onend = () => setTimeout(resolve, 40);
-    u.onerror = () => resolve();
+    u.onend = () => setTimeout(() => resolve(Date.now() - startedAt), 40);
+    u.onerror = () => resolve(0);
     speechSynthesis.speak(u);
   });
 }
