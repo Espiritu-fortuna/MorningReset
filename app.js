@@ -39,6 +39,9 @@ const UI = {
   exerciseCue: $('exercise-cue'),
   timerNumber: $('timer-number'),
   timerUnit: $('timer-unit'),
+  holdWrap: $('hold-wrap'),
+  holdNumber: $('hold-number'),
+  holdUnit: $('hold-unit'),
   nextCopy: $('next-copy'),
   statusRoutine: $('status-routine'),
   statusExercise: $('status-exercise'),
@@ -166,7 +169,7 @@ function bindSession() {
     jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1));
   });
   UI.restartBtn.addEventListener('click', () => jumpExercise(app.session?.exerciseIndex || 0));
-  UI.skipBtn?.addEventListener('click', () => jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1)));
+  UI.skipBtn?.addEventListener('click', () => skipSegment());
   UI.stopBtn.addEventListener('click', stopSession);
 }
 
@@ -402,13 +405,14 @@ async function runCountSegment(exercise, segment, token) {
   const alternatingSides = Boolean(segment.alternatingSides);
   const sides = alternatingSides ? ['Right', 'Left'] : [null];
   const baseLabel = segment.label || exercise.name;
+  resetHoldDisplay();
   for (let rep = 1; rep <= segment.reps; rep++) {
     for (const side of sides) {
       ensureAlive(token);
       const repStartedAt = Date.now();
       UI.timerNumber.textContent = String(rep);
       UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
-      if (side) UI.currentLabel.textContent = `${baseLabel} · ${side}`;
+      UI.currentLabel.textContent = side ? `${baseLabel} · ${side}` : baseLabel;
       if (segment.holdSec) {
         await speak(String(rep), true, 1.05);
         await runRepHold(segment, token);
@@ -419,19 +423,22 @@ async function runCountSegment(exercise, segment, token) {
       }
       const elapsedMs = Date.now() - repStartedAt;
       await waitRemaining(perRepMs, elapsedMs, token);
+      resetHoldDisplay();
     }
   }
 }
 
 async function runRepHold(segment, token) {
   const holdSec = Math.max(1, Math.round(segment.holdSec));
+  if (UI.holdWrap) UI.holdWrap.classList.remove('hidden');
   for (let remaining = holdSec; remaining > 0; remaining -= 1) {
     ensureAlive(token);
-    UI.timerNumber.textContent = String(remaining);
-    UI.timerUnit.textContent = 'HOLD';
+    UI.holdNumber.textContent = String(remaining);
+    UI.holdUnit.textContent = 'HOLD';
     beep(remaining <= 3 ? 980 : 820, remaining <= 3 ? 0.16 : 0.12, remaining <= 3 ? 0.085 : 0.07);
     await waitMs(1000, token);
   }
+  resetHoldDisplay();
 }
 
 async function runCountdownSegment(segment, token, isRest) {
@@ -507,6 +514,7 @@ function jumpExercise(index) {
   app.runnerToken += 1;
   app.paused = false;
   app.awaitingManual = false;
+  resetHoldDisplay();
   app.session.exerciseIndex = index;
   app.session.segmentIndex = 0;
   const chosen = app.session.timeline[index];
@@ -534,6 +542,7 @@ function stopSession() {
   app.runnerToken += 1;
   app.paused = false;
   app.awaitingManual = false;
+  resetHoldDisplay();
   speechSynthesis?.cancel?.();
   if (app.currentAudio) {
     try { app.currentAudio.pause(); } catch (_) {}
@@ -547,6 +556,7 @@ function stopSession() {
 }
 
 function completeSession() {
+  resetHoldDisplay();
   const elapsed = Date.now() - app.sessionStartedAt;
   const summary = {
     preset: app.session?.preset?.name || CFG.appName,
@@ -565,6 +575,24 @@ function completeSession() {
   showView('complete');
 }
 
+function skipSegment() {
+  if (!app.session) return;
+  app.runnerToken += 1;
+  app.paused = false;
+  app.awaitingManual = false;
+  resetHoldDisplay();
+  stepForward();
+  setPauseButtonState(app.session?.pendingManualStart ? 'manual' : 'pause');
+  runCurrentPosition(app.runnerToken).catch(() => {});
+}
+
+function resetHoldDisplay() {
+  if (!UI.holdWrap) return;
+  UI.holdWrap.classList.add('hidden');
+  UI.holdNumber.textContent = '';
+  UI.holdUnit.textContent = '';
+}
+
 function showView(which) {
   [UI.homeView, UI.sessionView, UI.completeView].forEach((view) => view.classList.remove('active'));
   UI.openJumpBtn.classList.toggle('hidden', which !== 'session');
@@ -580,6 +608,7 @@ function setDisplay({ phase, label, name, cue, number, unit, next }) {
   UI.exerciseCue.textContent = cue;
   UI.timerNumber.textContent = String(number);
   UI.timerUnit.textContent = unit;
+  resetHoldDisplay();
   if (UI.nextCopy) UI.nextCopy.textContent = next || '';
 }
 

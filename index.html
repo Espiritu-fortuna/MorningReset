@@ -121,6 +121,11 @@
               <div class="timer-number" id="timer-number">5</div>
               <div class="timer-unit" id="timer-unit">SECONDS</div>
             </div>
+            <div class="hold-wrap hidden" id="hold-wrap">
+              <div class="hold-label">Hold</div>
+              <div class="hold-number" id="hold-number"></div>
+              <div class="hold-unit" id="hold-unit"></div>
+            </div>
             <div class="next-copy hidden" id="next-copy">Up next: —</div>
             <div class="hidden">
               <strong id="status-routine">—</strong>
@@ -130,11 +135,12 @@
           </div>
         </div>
 
-        <div class="controls-grid icons-only">
-          <button class="control-btn" id="prev-btn" type="button" title="Previous">⏮</button>
+        <div class="controls-grid icons-only six-up">
+          <button class="control-btn" id="prev-btn" type="button" title="Previous exercise">⏮</button>
           <button class="control-btn accent" id="pause-btn" type="button" title="Pause">⏸</button>
-          <button class="control-btn" id="next-btn" type="button" title="Next">⏭</button>
-          <button class="control-btn" id="restart-btn" type="button" title="Restart">↺</button>
+          <button class="control-btn" id="next-btn" type="button" title="Next exercise">⏭</button>
+          <button class="control-btn" id="skip-btn" type="button" title="Skip segment">⤼</button>
+          <button class="control-btn" id="restart-btn" type="button" title="Restart exercise">↺</button>
           <button class="control-btn" id="stop-btn" type="button" title="Stop">■</button>
         </div>
       </section>
