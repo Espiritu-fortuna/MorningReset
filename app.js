@@ -410,11 +410,7 @@ async function runCountSegment(exercise, segment, token) {
       UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
       if (side) UI.currentLabel.textContent = `${baseLabel} · ${side}`;
       if (segment.holdSec) {
-        if (alternatingSides) {
-          beep(860, 0.12, 0.07);
-        } else {
-          await speak(String(rep), true, 1.05);
-        }
+        await speak(String(rep), true, 1.05);
         await runRepHold(segment, token);
       } else if (alternatingSides) {
         beep(860, 0.12, 0.07);
