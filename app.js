@@ -77,7 +77,6 @@ const app = {
   speechPrimed: false,
   audioManifest: null,
   currentAudio: null,
-  skipNextSegmentIntro: false,
 };
 
 init();
@@ -268,12 +267,10 @@ async function startSession() {
 }
 
 async function runLeadIn(token) {
-  const firstExercise = app.session?.timeline?.[0] || null;
-  const firstSegment = firstExercise?.segments?.[0] || null;
-  const introText = firstSegment?.announce || firstExercise?.name || `${app.session?.preset?.name || CFG.appName}.`;
-  setDisplay({ phase: 'READY', label: '', name: app.session?.preset?.name || CFG.appName, cue: 'Get set.', number: '', unit: '', next: '' });
+  const preset = app.session?.preset || {};
+  const introText = preset.introSpeech || CFG.introSpeech || preset.name || CFG.appName;
+  setDisplay({ phase: 'READY', label: '', name: preset.name || CFG.appName, cue: 'Get set.', number: '', unit: '', next: '' });
   const spokenMs = await speak(introText, true, 1);
-  app.skipNextSegmentIntro = Boolean(firstExercise);
   await waitRemaining(CFG.introLeadInSec * 1000, spokenMs, token);
 }
 
@@ -310,12 +307,8 @@ async function runCurrentPosition(token) {
     return runCurrentPosition(token);
   }
 
-  if (app.skipNextSegmentIntro) {
-    app.skipNextSegmentIntro = false;
-  } else {
-    await speak(segment.announce || exercise.name, true, 1);
-    await runAnnouncementPrep(segment, token);
-  }
+  await speak(segment.announce || exercise.name, true, 1);
+  await runAnnouncementPrep(segment, token);
 
   if (segment.type === 'count') {
     await runCountSegment(exercise, segment, token);
@@ -417,7 +410,11 @@ async function runCountSegment(exercise, segment, token) {
       UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
       if (side) UI.currentLabel.textContent = `${baseLabel} · ${side}`;
       if (segment.holdSec) {
-        beep(860, 0.12, 0.07);
+        if (alternatingSides) {
+          beep(860, 0.12, 0.07);
+        } else {
+          await speak(String(rep), true, 1.05);
+        }
         await runRepHold(segment, token);
       } else if (alternatingSides) {
         beep(860, 0.12, 0.07);
@@ -436,7 +433,7 @@ async function runRepHold(segment, token) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remaining);
     UI.timerUnit.textContent = 'HOLD';
-    fireTimerCue(remaining, { loudFinal: true, voiceFinal: false });
+    beep(remaining <= 3 ? 980 : 820, remaining <= 3 ? 0.16 : 0.12, remaining <= 3 ? 0.085 : 0.07);
     await waitMs(1000, token);
   }
 }
