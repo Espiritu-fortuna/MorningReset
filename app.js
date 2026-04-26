@@ -1,0 +1,547 @@
+'use strict';
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+const CFG = window.ROUTINE_CONFIG;
+const $ = (id) => document.getElementById(id);
+
+const UI = {
+  brandName: $('brand-name'),
+  brandSubtitle: $('brand-subtitle'),
+  routineTitle: $('routine-title'),
+  routineSummary: $('routine-summary'),
+  presetPanel: $('preset-panel'),
+  presetSelect: $('preset-select'),
+  presetNote: $('preset-note'),
+  modeAutoBtn: $('mode-auto-btn'),
+  modeManualBtn: $('mode-manual-btn'),
+  paceSlider: $('pace-slider'),
+  paceValue: $('pace-value'),
+  voiceName: $('voice-name'),
+  testVoiceBtn: $('test-voice-btn'),
+  toggleCuesBtn: $('toggle-cues-btn'),
+  exerciseSettings: $('exercise-settings'),
+  startBtn: $('start-btn'),
+  homeView: $('home-view'),
+  sessionView: $('session-view'),
+  completeView: $('complete-view'),
+  phaseBadge: $('phase-badge'),
+  progressText: $('progress-text'),
+  modeBadge: $('mode-badge'),
+  currentLabel: $('current-label'),
+  exerciseName: $('exercise-name'),
+  exerciseCue: $('exercise-cue'),
+  timerNumber: $('timer-number'),
+  timerUnit: $('timer-unit'),
+  nextCopy: $('next-copy'),
+  statusRoutine: $('status-routine'),
+  statusExercise: $('status-exercise'),
+  statusSegment: $('status-segment'),
+  prevBtn: $('prev-btn'),
+  pauseBtn: $('pause-btn'),
+  nextBtn: $('next-btn'),
+  restartBtn: $('restart-btn'),
+  skipBtn: $('skip-btn'),
+  stopBtn: $('stop-btn'),
+  doneBtn: $('done-btn'),
+  completeRoutine: $('complete-routine'),
+  completeExercises: $('complete-exercises'),
+  completeDuration: $('complete-duration'),
+  completeCopy: $('complete-copy'),
+  jumpDialog: $('jump-dialog'),
+  jumpList: $('jump-list'),
+  openJumpBtn: $('open-jump-btn')
+};
+
+const app = {
+  selectedPresetId: CFG.presets?.[0]?.id || 'default',
+  mode: 'auto',
+  globalPace: loadNumber('globalPace', CFG.defaultGlobalPace || 1),
+  voiceEnabled: loadBool('voiceEnabled', true),
+  voices: [],
+  selectedVoice: null,
+  wakeLock: null,
+  runnerToken: 0,
+  paused: false,
+  stopRequested: false,
+  awaitingManual: false,
+  session: null,
+  sessionStartedAt: 0,
+  currentSegmentRemainingMs: null,
+};
+
+init();
+
+function init() {
+  UI.brandName.textContent = CFG.appName;
+  UI.brandSubtitle.textContent = CFG.subtitle || 'Guided routine';
+  populatePresets();
+  bindHome();
+  bindSession();
+  initVoices();
+  renderHome();
+  document.addEventListener('visibilitychange', handleVisibility);
+}
+
+function populatePresets() {
+  if (!CFG.presets || CFG.presets.length <= 1) {
+    UI.presetPanel.classList.add('hidden');
+    return;
+  }
+  UI.presetSelect.innerHTML = '';
+  CFG.presets.forEach((preset) => {
+    const opt = document.createElement('option');
+    opt.value = preset.id;
+    opt.textContent = preset.name;
+    UI.presetSelect.appendChild(opt);
+  });
+  UI.presetSelect.value = app.selectedPresetId;
+}
+
+function bindHome() {
+  UI.presetSelect?.addEventListener('change', () => {
+    app.selectedPresetId = UI.presetSelect.value;
+    persist('selectedPresetId', app.selectedPresetId);
+    renderHome();
+  });
+  const storedPreset = localStorage.getItem(storageKey('selectedPresetId'));
+  if (storedPreset && CFG.presets?.find(p => p.id === storedPreset)) app.selectedPresetId = storedPreset;
+  UI.modeAutoBtn.addEventListener('click', () => setMode('auto'));
+  UI.modeManualBtn.addEventListener('click', () => setMode('manual'));
+  UI.paceSlider.value = String(app.globalPace);
+  UI.paceSlider.addEventListener('input', () => {
+    app.globalPace = parseFloat(UI.paceSlider.value);
+    persist('globalPace', app.globalPace);
+    renderHome();
+  });
+  UI.testVoiceBtn.addEventListener('click', async () => {
+    await speak('Voice check. Smooth and steady.', true, 1);
+  });
+  UI.toggleCuesBtn.addEventListener('click', () => {
+    app.voiceEnabled = !app.voiceEnabled;
+    persist('voiceEnabled', app.voiceEnabled);
+    renderHome();
+  });
+  UI.startBtn.addEventListener('click', startSession);
+  UI.doneBtn.addEventListener('click', () => {
+    showView('home');
+    renderHome();
+  });
+  UI.openJumpBtn.addEventListener('click', () => {
+    if (app.session) UI.jumpDialog.showModal();
+  });
+}
+
+function bindSession() {
+  UI.pauseBtn.addEventListener('click', () => {
+    if (app.awaitingManual) {
+      startAwaitedManualExercise();
+      return;
+    }
+    app.paused = !app.paused;
+    UI.pauseBtn.textContent = app.paused ? 'Resume' : 'Pause';
+  });
+  UI.prevBtn.addEventListener('click', () => jumpExercise(Math.max(0, (app.session?.exerciseIndex || 0) - 1)));
+  UI.nextBtn.addEventListener('click', () => {
+    if (app.awaitingManual) return startAwaitedManualExercise();
+    jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1));
+  });
+  UI.restartBtn.addEventListener('click', () => jumpExercise(app.session?.exerciseIndex || 0));
+  UI.skipBtn.addEventListener('click', () => jumpExercise(Math.min((app.session?.timeline.length || 1) - 1, (app.session?.exerciseIndex || 0) + 1)));
+  UI.stopBtn.addEventListener('click', stopSession);
+}
+
+function setMode(mode) {
+  app.mode = mode;
+  persist('mode', mode);
+  renderHome();
+}
+app.mode = localStorage.getItem(storageKey('mode')) || 'auto';
+
+function renderHome() {
+  const preset = getSelectedPreset();
+  UI.routineTitle.textContent = preset.name || CFG.appName;
+  UI.routineSummary.textContent = preset.summary || 'Guided session';
+  UI.presetNote.textContent = preset.note || '';
+  UI.modeAutoBtn.classList.toggle('active', app.mode === 'auto');
+  UI.modeManualBtn.classList.toggle('active', app.mode === 'manual');
+  UI.modeBadge.textContent = app.mode.toUpperCase();
+  UI.paceValue.textContent = `${app.globalPace.toFixed(2)}×`;
+  UI.toggleCuesBtn.textContent = app.voiceEnabled ? 'Voice on' : 'Voice off';
+  UI.startBtn.textContent = preset.restDay ? 'Open rest day' : 'Start session';
+  renderExerciseSettings(preset);
+}
+
+function renderExerciseSettings(preset) {
+  const all = [...(preset.warmups || []), ...(preset.exercises || [])];
+  UI.exerciseSettings.innerHTML = '';
+  all.forEach((exercise) => {
+    const pace = getExercisePace(exercise.key);
+    const wrap = document.createElement('div');
+    wrap.className = 'exercise-setting';
+    wrap.innerHTML = `
+      <div class="exercise-setting-header">
+        <div>
+          <div class="exercise-setting-title">${escapeHtml(exercise.name)}</div>
+          <small>${escapeHtml(exercise.phase === 'warmup' ? 'Warm-up' : 'Main routine')}</small>
+        </div>
+        <strong>${pace.toFixed(2)}×</strong>
+      </div>
+      <input type="range" min="0.75" max="1.35" step="0.05" value="${pace.toFixed(2)}" data-key="${exercise.key}" />
+    `;
+    wrap.querySelector('input').addEventListener('input', (e) => {
+      setExercisePace(exercise.key, parseFloat(e.target.value));
+      renderHome();
+    });
+    UI.exerciseSettings.appendChild(wrap);
+  });
+}
+
+function getSelectedPreset() {
+  return CFG.presets?.find((p) => p.id === app.selectedPresetId) || CFG.presets?.[0] || CFG;
+}
+
+function buildTimeline(preset) {
+  if (preset.restDay) {
+    return [{ key: 'rest-day', phase: 'rest', name: preset.name, cue: preset.note || 'Light walking only.', manualEligible: false, segments: [{ type: 'timed', label: 'Rest day', durationSec: 15, announce: 'Rest day. Light walking only. No loaded work today.' }] }];
+  }
+  const base = [...(preset.warmups || []), ...(preset.exercises || [])].map((exercise) => ({
+    ...exercise,
+    segments: (exercise.segments || []).map((segment) => ({ ...segment }))
+  }));
+  for (let i = 0; i < base.length - 1; i += 1) {
+    const current = base[i];
+    const next = base[i + 1];
+    if (current.phase === 'warmup' && next.phase === 'main') {
+      current.segments.push({ type: 'rest', durationSec: CFG.defaultRestSec || 60, label: 'Transition rest', announce: `Warm-up complete. Next: ${next.name}. Rest starts now.` });
+    } else if (current.phase === 'main' && next.phase === 'main') {
+      current.segments.push({ type: 'rest', durationSec: CFG.defaultRestSec || 60, label: 'Exercise break', announce: `Next: ${next.name}. Rest starts now.` });
+    }
+  }
+  return base;
+}
+
+async function startSession() {
+  const preset = getSelectedPreset();
+  const timeline = buildTimeline(preset);
+  app.runnerToken += 1;
+  app.stopRequested = false;
+  app.paused = false;
+  app.awaitingManual = false;
+  app.sessionStartedAt = Date.now();
+  app.session = { preset, timeline, exerciseIndex: 0, segmentIndex: 0, completedExercises: 0 };
+  UI.pauseBtn.textContent = 'Pause';
+  await acquireWakeLock();
+  showView('session');
+  renderJumpList();
+  if (!preset.restDay) {
+    await runLeadIn(app.runnerToken);
+  }
+  if (app.mode === 'manual' && timeline[0] && timeline[0].phase === 'main') {
+    app.session.pendingManualStart = true;
+  }
+  runCurrentPosition(app.runnerToken).catch(() => {});
+}
+
+async function runLeadIn(token) {
+  setDisplay({ phase: 'GET READY', label: 'Silent lead-in', name: 'Session starts soon', cue: 'Five-second setup window before the first announcement.', number: CFG.introLeadInSec, unit: 'SECONDS', next: '' });
+  await waitMs(CFG.introLeadInSec * 1000, token, CFG.introLeadInSec, 'SECONDS');
+}
+
+async function runCurrentPosition(token) {
+  if (!app.session || token !== app.runnerToken || app.stopRequested) return;
+  const exercise = app.session.timeline[app.session.exerciseIndex];
+  if (!exercise) return completeSession();
+  if (app.session.pendingManualStart) return waitForManualStart();
+  const segment = exercise.segments[app.session.segmentIndex];
+  if (!segment) return advanceExercise(token);
+
+  const nextExercise = app.session.timeline[app.session.exerciseIndex + 1] || null;
+  const nextName = nextExercise ? nextExercise.name : 'Finish';
+  const segmentTitle = segment.label || exercise.name;
+  setDisplay({
+    phase: exercise.phase === 'warmup' ? 'WARM-UP' : (segment.type === 'rest' ? 'REST' : 'WORK'),
+    label: segment.type === 'rest' ? 'Rest block' : segmentTitle,
+    name: exercise.name,
+    cue: exercise.cue,
+    number: segment.type === 'count' ? segment.reps : displayDuration(exercise, segment),
+    unit: segment.type === 'count' ? 'REPS' : 'SECONDS',
+    next: `Up next: ${nextName}`
+  });
+  UI.progressText.textContent = `${app.session.exerciseIndex + 1} / ${app.session.timeline.length}`;
+  UI.statusRoutine.textContent = app.session.preset.name;
+  UI.statusExercise.textContent = exercise.name;
+  UI.statusSegment.textContent = segmentTitle;
+
+  if (segment.type === 'rest') {
+    await speak(segment.announce || `Rest. ${segment.label || ''}`.trim(), true, 1);
+    await runCountdownSegment(segment, token, true);
+    stepForward();
+    return runCurrentPosition(token);
+  }
+
+  await speak(segment.announce || exercise.name, true, 1);
+  await waitMs(CFG.announcementDelaySec * 1000, token, CFG.announcementDelaySec, 'PREP');
+
+  if (segment.type === 'count') {
+    await runCountSegment(exercise, segment, token);
+  } else if (segment.type === 'timed' || segment.type === 'hold') {
+    await runCountdownSegment(segment, token, false);
+  } else if (segment.type === 'breath') {
+    await runBreathSegment(segment, token);
+  }
+
+  stepForward();
+  return runCurrentPosition(token);
+}
+
+function waitForManualStart() {
+  app.awaitingManual = true;
+  UI.pauseBtn.textContent = 'Start next';
+  UI.phaseBadge.textContent = 'MANUAL';
+  UI.currentLabel.textContent = 'Awaiting your tap';
+  UI.exerciseCue.textContent = 'Warm-ups auto-run. Main exercises wait for Next in manual mode.';
+}
+
+function startAwaitedManualExercise() {
+  if (!app.awaitingManual) return;
+  app.awaitingManual = false;
+  if (app.session) app.session.pendingManualStart = false;
+  UI.pauseBtn.textContent = 'Pause';
+  runCurrentPosition(app.runnerToken).catch(() => {});
+}
+
+function stepForward() {
+  if (!app.session) return;
+  const exercise = app.session.timeline[app.session.exerciseIndex];
+  if (app.session.segmentIndex < exercise.segments.length - 1) {
+    app.session.segmentIndex += 1;
+    return;
+  }
+  app.session.completedExercises += 1;
+  app.session.exerciseIndex += 1;
+  app.session.segmentIndex = 0;
+  const upcoming = app.session.timeline[app.session.exerciseIndex];
+  app.session.pendingManualStart = Boolean(app.mode === 'manual' && upcoming && upcoming.phase === 'main');
+}
+
+function advanceExercise(token) {
+  stepForward();
+  return runCurrentPosition(token);
+}
+
+async function runCountSegment(exercise, segment, token) {
+  const pace = app.globalPace * getExercisePace(exercise.key);
+  const perRepMs = Math.max(450, (segment.paceSec * 1000) / pace);
+  for (let rep = 1; rep <= segment.reps; rep++) {
+    ensureAlive(token);
+    UI.timerNumber.textContent = String(rep);
+    UI.timerUnit.textContent = 'REPS';
+    await speak(String(rep), true, 1.05);
+    await waitMs(perRepMs, token);
+  }
+}
+
+async function runCountdownSegment(segment, token, isRest) {
+  let remainingSec = displayDuration(app.session.timeline[app.session.exerciseIndex], segment);
+  while (remainingSec > 0) {
+    ensureAlive(token);
+    UI.timerNumber.textContent = String(remainingSec);
+    UI.timerUnit.textContent = 'SECONDS';
+    if (!isRest && remainingSec <= 3) await speak(String(remainingSec), true, 1.0);
+    await waitMs(1000, token);
+    remainingSec -= 1;
+  }
+  UI.timerNumber.textContent = '0';
+}
+
+async function runBreathSegment(segment, token) {
+  const pace = app.globalPace;
+  for (let i = 1; i <= segment.cycles; i++) {
+    ensureAlive(token);
+    UI.timerNumber.textContent = String(i);
+    UI.timerUnit.textContent = 'BREATH';
+    UI.exerciseCue.textContent = 'Inhale through the nose, then long controlled exhale.';
+    await speak('Inhale', true, 0.98);
+    await waitMs((segment.inhaleSec * 1000) / pace, token);
+    await speak('Exhale', true, 0.95);
+    await waitMs((segment.exhaleSec * 1000) / pace, token);
+  }
+}
+
+function displayDuration(exercise, segment) {
+  const exercisePace = exercise ? getExercisePace(exercise.key) : 1;
+  if (segment.type === 'timed' || segment.type === 'hold') return Math.max(1, Math.round(segment.durationSec / (app.globalPace * exercisePace)));
+  if (segment.type === 'rest') return Math.max(1, Math.round(segment.durationSec));
+  return segment.durationSec || 0;
+}
+
+async function waitMs(ms, token, countdown = null, unit = '') {
+  let remaining = ms;
+  while (remaining > 0) {
+    ensureAlive(token);
+    if (app.paused) {
+      await sleep(120);
+      continue;
+    }
+    const slice = Math.min(120, remaining);
+    await sleep(slice);
+    remaining -= slice;
+    if (countdown !== null) {
+      const display = Math.max(1, Math.ceil(remaining / 1000));
+      UI.timerNumber.textContent = String(display);
+      UI.timerUnit.textContent = unit;
+    }
+  }
+}
+
+function ensureAlive(token) {
+  if (token !== app.runnerToken || app.stopRequested) throw new Error('stale-run');
+}
+
+function jumpExercise(index) {
+  if (!app.session) return;
+  if (index < 0 || index >= app.session.timeline.length) return;
+  app.runnerToken += 1;
+  app.paused = false;
+  app.awaitingManual = false;
+  app.session.exerciseIndex = index;
+  app.session.segmentIndex = 0;
+  UI.pauseBtn.textContent = 'Pause';
+  runCurrentPosition(app.runnerToken).catch(() => {});
+  if (UI.jumpDialog.open) UI.jumpDialog.close();
+}
+
+function renderJumpList() {
+  if (!app.session) return;
+  UI.jumpList.innerHTML = '';
+  app.session.timeline.forEach((exercise, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'jump-item';
+    btn.innerHTML = `<strong>${idx + 1}. ${escapeHtml(exercise.name)}</strong><small>${escapeHtml(exercise.phase === 'warmup' ? 'Warm-up' : 'Main')}</small>`;
+    btn.addEventListener('click', () => jumpExercise(idx));
+    UI.jumpList.appendChild(btn);
+  });
+}
+
+function stopSession() {
+  app.stopRequested = true;
+  app.runnerToken += 1;
+  app.paused = false;
+  app.awaitingManual = false;
+  speechSynthesis?.cancel?.();
+  releaseWakeLock();
+  app.session = null;
+  showView('home');
+  renderHome();
+}
+
+function completeSession() {
+  const elapsed = Date.now() - app.sessionStartedAt;
+  UI.completeRoutine.textContent = app.session?.preset?.name || CFG.appName;
+  UI.completeExercises.textContent = `${app.session?.timeline?.length || 0}`;
+  UI.completeDuration.textContent = formatDuration(elapsed);
+  UI.completeCopy.textContent = app.session?.preset?.restDay ? 'Rest day logged locally.' : 'Finished offline and ready to rerun anytime.';
+  releaseWakeLock();
+  showView('complete');
+}
+
+function showView(which) {
+  [UI.homeView, UI.sessionView, UI.completeView].forEach((view) => view.classList.remove('active'));
+  if (which === 'home') UI.homeView.classList.add('active');
+  else if (which === 'session') UI.sessionView.classList.add('active');
+  else UI.completeView.classList.add('active');
+}
+
+function setDisplay({ phase, label, name, cue, number, unit, next }) {
+  UI.phaseBadge.textContent = phase;
+  UI.currentLabel.textContent = label;
+  UI.exerciseName.textContent = name;
+  UI.exerciseCue.textContent = cue;
+  UI.timerNumber.textContent = String(number);
+  UI.timerUnit.textContent = unit;
+  UI.nextCopy.textContent = next || '';
+}
+
+function initVoices() {
+  if (!window.speechSynthesis) {
+    UI.voiceName.textContent = 'Unavailable';
+    return;
+  }
+  const load = () => {
+    app.voices = speechSynthesis.getVoices() || [];
+    if (!app.voices.length) return;
+    app.selectedVoice = app.voices.find(v => v.name === 'Google UK English Female')
+      || app.voices.find(v => v.name === 'Google US English')
+      || app.voices.find(v => v.lang?.startsWith('en') && v.name?.includes('Google'))
+      || app.voices.find(v => v.lang?.startsWith('en'))
+      || app.voices[0];
+    UI.voiceName.textContent = app.selectedVoice?.name || 'System voice';
+  };
+  load();
+  speechSynthesis.addEventListener('voiceschanged', load);
+}
+
+async function speak(text, cancel = true, rate = 1) {
+  if (!app.voiceEnabled || !window.speechSynthesis || !text) return;
+  if (cancel) speechSynthesis.cancel();
+  return new Promise((resolve) => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = app.selectedVoice;
+    u.rate = rate;
+    u.pitch = 1;
+    u.onend = () => resolve();
+    u.onerror = () => resolve();
+    speechSynthesis.speak(u);
+  });
+}
+
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    if (!app.wakeLock) app.wakeLock = await navigator.wakeLock.request('screen');
+  } catch (_) {}
+}
+
+function releaseWakeLock() {
+  if (app.wakeLock) app.wakeLock.release().catch(() => {});
+  app.wakeLock = null;
+}
+
+async function handleVisibility() {
+  if (document.visibilityState === 'visible' && app.session) await acquireWakeLock();
+}
+
+function getExercisePace(key) {
+  return loadNumber(`pace:${key}`, 1);
+}
+function setExercisePace(key, val) {
+  persist(`pace:${key}`, val);
+}
+function persist(key, value) {
+  localStorage.setItem(storageKey(key), String(value));
+}
+function loadNumber(key, fallback) {
+  const raw = localStorage.getItem(storageKey(key));
+  return raw === null ? fallback : parseFloat(raw);
+}
+function loadBool(key, fallback) {
+  const raw = localStorage.getItem(storageKey(key));
+  return raw === null ? fallback : raw === 'true';
+}
+function storageKey(key) {
+  return `${CFG.shortName}:${key}`;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function formatDuration(ms) {
+  const total = Math.max(1, Math.round(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+}

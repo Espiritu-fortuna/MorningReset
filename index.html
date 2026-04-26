@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MorningReset</title>
+  <meta name="theme-color" content="#05070b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MorningReset" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="brand" id="brand-name">MorningReset</div>
+        <div class="subbrand" id="brand-subtitle">Pixel-first guided routine</div>
+      </div>
+      <button class="ghost-btn" id="open-jump-btn" type="button">Jump</button>
+    </header>
+
+    <main id="views">
+      <section id="home-view" class="view active">
+        <div class="hero-card">
+          <div class="eyebrow">OFFLINE PWA</div>
+          <h1 id="routine-title">Morning routine</h1>
+          <p id="routine-summary">Large-text, voice-guided training flow.</p>
+        </div>
+
+        <div class="panel" id="preset-panel">
+          <label class="field-label" for="preset-select">Routine preset</label>
+          <select id="preset-select" class="select"></select>
+          <div id="preset-note" class="helper"></div>
+        </div>
+
+        <div class="panel">
+          <div class="field-row two-up">
+            <div>
+              <div class="field-label">Session mode</div>
+              <div class="segmented">
+                <button type="button" class="seg-btn active" data-mode="auto" id="mode-auto-btn">Auto</button>
+                <button type="button" class="seg-btn" data-mode="manual" id="mode-manual-btn">Manual</button>
+              </div>
+            </div>
+            <div>
+              <div class="field-label">Global pace</div>
+              <div class="value-pill"><span id="pace-value">1.00×</span></div>
+            </div>
+          </div>
+          <input type="range" id="pace-slider" min="0.75" max="1.35" step="0.05" value="1" />
+          <div class="range-labels"><span>Slower</span><span>Neutral</span><span>Faster</span></div>
+        </div>
+
+        <div class="panel">
+          <div class="field-row">
+            <div>
+              <div class="field-label">Voice</div>
+              <div class="helper">Smooth TTS optimized for Pixel install mode</div>
+            </div>
+            <div class="value-pill small"><span id="voice-name">Loading…</span></div>
+          </div>
+          <div class="field-row compact">
+            <button class="ghost-btn" id="test-voice-btn" type="button">Test voice</button>
+            <button class="ghost-btn" id="toggle-cues-btn" type="button">Voice on</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="field-row">
+            <div>
+              <div class="field-label">Per-exercise pace</div>
+              <div class="helper">Adjust individual movements without changing the whole routine.</div>
+            </div>
+          </div>
+          <div id="exercise-settings" class="exercise-settings"></div>
+        </div>
+
+        <button id="start-btn" class="primary-btn" type="button">Start session</button>
+      </section>
+
+      <section id="session-view" class="view">
+        <div class="session-head">
+          <div class="eyebrow" id="phase-badge">GET READY</div>
+          <div class="progress-copy"><span id="progress-text">0 / 0</span><span id="mode-badge">AUTO</span></div>
+        </div>
+
+        <div class="panel giant-panel">
+          <div class="current-label" id="current-label">Lead-in</div>
+          <h2 id="exercise-name">Session ready</h2>
+          <p id="exercise-cue" class="exercise-cue">Press start when you are ready.</p>
+          <div class="timer-wrap">
+            <div class="timer-number" id="timer-number">5</div>
+            <div class="timer-unit" id="timer-unit">SECONDS</div>
+          </div>
+          <div class="next-copy" id="next-copy">Up next: —</div>
+        </div>
+
+        <div class="panel status-panel">
+          <div class="status-row"><span>Routine</span><strong id="status-routine">—</strong></div>
+          <div class="status-row"><span>Exercise</span><strong id="status-exercise">—</strong></div>
+          <div class="status-row"><span>Segment</span><strong id="status-segment">—</strong></div>
+        </div>
+
+        <div class="controls-grid">
+          <button class="control-btn" id="prev-btn" type="button">Previous</button>
+          <button class="control-btn accent" id="pause-btn" type="button">Pause</button>
+          <button class="control-btn" id="next-btn" type="button">Next</button>
+          <button class="control-btn" id="restart-btn" type="button">Restart</button>
+          <button class="control-btn danger" id="skip-btn" type="button">Skip</button>
+          <button class="control-btn" id="stop-btn" type="button">Stop</button>
+        </div>
+      </section>
+
+      <section id="complete-view" class="view complete-view">
+        <div class="hero-card">
+          <div class="eyebrow">SESSION COMPLETE</div>
+          <h2 id="complete-title">Nice work.</h2>
+          <p id="complete-copy">The session is saved locally on this device.</p>
+        </div>
+        <div class="panel">
+          <div class="status-row"><span>Completed</span><strong id="complete-routine">—</strong></div>
+          <div class="status-row"><span>Exercises</span><strong id="complete-exercises">—</strong></div>
+          <div class="status-row"><span>Total time</span><strong id="complete-duration">—</strong></div>
+        </div>
+        <button id="done-btn" class="primary-btn" type="button">Back home</button>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="jump-dialog" class="jump-dialog">
+    <form method="dialog" class="jump-shell">
+      <div class="field-row compact">
+        <div>
+          <div class="field-label">Jump to exercise</div>
+          <div class="helper">Manual or auto, without breaking the session state machine.</div>
+        </div>
+        <button class="ghost-btn" value="cancel">Close</button>
+      </div>
+      <div id="jump-list" class="jump-list"></div>
+    </form>
+  </dialog>
+
+  <script src="routine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
