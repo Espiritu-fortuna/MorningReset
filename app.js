@@ -82,14 +82,14 @@ const app = {
 
 init();
 
-function init() {
+async function init() {
   UI.brandName.textContent = CFG.brandLabel || CFG.appName;
   UI.brandSubtitle.textContent = CFG.headerSubtitle || CFG.subtitle || 'Guided routine';
   populatePresets();
   bindHome();
   bindSession();
+  await loadAudioManifest();
   initVoices();
-  loadAudioManifest();
   renderHome();
   document.addEventListener('visibilitychange', handleVisibility);
 }
@@ -593,12 +593,15 @@ function setDisplay({ phase, label, name, cue, number, unit, next }) {
 async function loadAudioManifest() {
   try {
     const res = await fetch('./audio/manifest.json', { cache: 'no-cache' });
-    if (!res.ok) return;
+    if (!res.ok) return false;
     app.audioManifest = await res.json();
     if (app.audioManifest?.engine) {
       UI.voiceName.textContent = `Bundled audio (${app.audioManifest.engine})`;
     }
-  } catch (_) {}
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 function initVoices() {
