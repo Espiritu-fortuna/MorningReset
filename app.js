@@ -77,6 +77,7 @@ const app = {
   speechPrimed: false,
   audioManifest: null,
   currentAudio: null,
+  skipNextSegmentIntro: false,
 };
 
 init();
@@ -267,8 +268,14 @@ async function startSession() {
 }
 
 async function runLeadIn(token) {
-  setDisplay({ phase: 'GET READY', label: 'Silent lead-in', name: 'Session starts soon', cue: 'Five-second setup window before the first announcement.', number: CFG.introLeadInSec, unit: 'SECONDS', next: '' });
-  await waitMs(CFG.introLeadInSec * 1000, token, CFG.introLeadInSec, 'SECONDS');
+  const firstExercise = app.session?.timeline?.[0] || null;
+  const introText = firstExercise
+    ? `${app.session?.preset?.name || CFG.appName}. Starting with ${firstExercise.name}.`
+    : `${app.session?.preset?.name || CFG.appName}. Let's begin.`;
+  setDisplay({ phase: 'READY', label: '', name: app.session?.preset?.name || CFG.appName, cue: 'Get set.', number: '', unit: '', next: '' });
+  const spokenMs = await speak(introText, true, 1);
+  app.skipNextSegmentIntro = Boolean(firstExercise);
+  await waitRemaining(CFG.introLeadInSec * 1000, spokenMs, token);
 }
 
 async function runCurrentPosition(token) {
@@ -304,8 +311,12 @@ async function runCurrentPosition(token) {
     return runCurrentPosition(token);
   }
 
-  await speak(segment.announce || exercise.name, true, 1);
-  await runAnnouncementPrep(segment, token);
+  if (app.skipNextSegmentIntro) {
+    app.skipNextSegmentIntro = false;
+  } else {
+    await speak(segment.announce || exercise.name, true, 1);
+    await runAnnouncementPrep(segment, token);
+  }
 
   if (segment.type === 'count') {
     await runCountSegment(exercise, segment, token);
@@ -386,13 +397,8 @@ async function runPrepCountdown(seconds, token, unit = 'PREP') {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remaining);
     UI.timerUnit.textContent = unit;
-    let spokenMs = 0;
-    if (remaining <= Math.min(3, seconds) && app.voiceEnabled) {
-      spokenMs = await speak(String(remaining), true, 1.0);
-    } else {
-      beep(remaining <= 3 ? 930 : 720, 0.05, 0.06);
-    }
-    await waitRemaining(1000, spokenMs, token);
+    fireTimerCue(remaining, { loudFinal: true, voiceFinal: true });
+    await waitMs(1000, token);
   }
   UI.timerNumber.textContent = '0';
   UI.timerUnit.textContent = unit;
@@ -421,13 +427,8 @@ async function runRepHold(segment, token) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remaining);
     UI.timerUnit.textContent = 'HOLD';
-    let spokenMs = 0;
-    if (remaining <= Math.min(3, holdSec) && app.voiceEnabled) {
-      spokenMs = await speak(String(remaining), true, 1.0);
-    } else {
-      beep(remaining <= 3 ? 930 : 760, 0.045, 0.055);
-    }
-    await waitRemaining(1000, spokenMs, token);
+    fireTimerCue(remaining, { loudFinal: true, voiceFinal: true });
+    await waitMs(1000, token);
   }
 }
 
@@ -437,14 +438,8 @@ async function runCountdownSegment(segment, token, isRest) {
     ensureAlive(token);
     UI.timerNumber.textContent = String(remainingSec);
     UI.timerUnit.textContent = 'SECONDS';
-    let spokenMs = 0;
-    const shouldSpeak = !isRest && remainingSec <= 3 && app.voiceEnabled;
-    if (shouldSpeak) {
-      spokenMs = await speak(String(remainingSec), true, 1.0);
-    } else {
-      beep((!isRest && remainingSec <= 3) ? 930 : 720, isRest ? 0.035 : 0.045, 0.055);
-    }
-    await waitRemaining(1000, spokenMs, token);
+    fireTimerCue(remainingSec, { loudFinal: !isRest, voiceFinal: !isRest, rest: isRest });
+    await waitMs(1000, token);
     remainingSec -= 1;
   }
   UI.timerNumber.textContent = '0';
@@ -634,6 +629,42 @@ function bundledAudioPath(text) {
   const manifest = app.audioManifest;
   if (/^\d+$/.test(String(text)) && manifest.numbers?.[String(text)]) return manifest.numbers[String(text)];
   return manifest.phrases?.[text] || null;
+}
+
+function fireTimerCue(value, options = {}) {
+  const { loudFinal = false, voiceFinal = false, rest = false } = options;
+  const finalWindow = loudFinal ? 3 : 0;
+  const isFinal = value <= finalWindow && finalWindow > 0;
+  if (isFinal && voiceFinal && app.voiceEnabled) {
+    speakDetached(String(value));
+    return;
+  }
+  const freq = isFinal ? 960 : (rest ? 640 : 780);
+  const volume = isFinal ? 0.16 : (rest ? 0.08 : 0.12);
+  const duration = isFinal ? 0.09 : 0.07;
+  beep(freq, volume, duration);
+}
+
+function speakDetached(text) {
+  if (!text) return;
+  const bundled = bundledAudioPath(text);
+  if (bundled) {
+    try {
+      const audio = new Audio(bundled);
+      audio.preload = 'auto';
+      audio.play().catch(() => {});
+      return;
+    } catch (_) {}
+  }
+  if (!window.speechSynthesis || !app.voiceEnabled) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = app.selectedVoice;
+    u.rate = 1;
+    u.pitch = 1;
+    u.volume = 1;
+    speechSynthesis.speak(u);
+  } catch (_) {}
 }
 
 function beep(freq = 760, volume = 0.1, durationSec = 0.08) {
