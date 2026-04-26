@@ -324,8 +324,8 @@ async function runCurrentPosition(token) {
     return runCurrentPosition(token);
   }
 
-  await speak(segment.announce || exercise.name, true, 1);
-  await waitMs(CFG.announcementDelaySec * 1000, token, CFG.announcementDelaySec, 'PREP');
+  const spokenMs = await speak(segment.announce || exercise.name, true, 1);
+  await runAnnouncementPrep(segment, token, spokenMs);
 
   if (segment.type === 'count') {
     await runCountSegment(exercise, segment, token);
@@ -372,6 +372,18 @@ function stepForward() {
 function advanceExercise(token) {
   stepForward();
   return runCurrentPosition(token);
+}
+
+async function runAnnouncementPrep(segment, token, spokenMs = 0) {
+  const prepMs = Math.max(0, CFG.announcementDelaySec * 1000);
+  if (!prepMs) return;
+  UI.phaseBadge.textContent = segment.type === 'rest' ? 'REST' : 'READY';
+  UI.currentLabel.textContent = segment.type === 'count' ? 'Starts in' : 'Get set';
+  await waitMs(prepMs, token, CFG.announcementDelaySec, 'PREP');
+  if (segment.type === 'count') {
+    UI.phaseBadge.textContent = 'WORK';
+    UI.currentLabel.textContent = segment.label || 'Work';
+  }
 }
 
 async function runCountSegment(exercise, segment, token) {
@@ -437,6 +449,10 @@ async function waitMs(ms, token, countdown = null, unit = '') {
       UI.timerNumber.textContent = String(display);
       UI.timerUnit.textContent = unit;
     }
+  }
+  if (countdown !== null) {
+    UI.timerNumber.textContent = '0';
+    UI.timerUnit.textContent = unit;
   }
 }
 
