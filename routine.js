@@ -15,9 +15,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 8, 3.2, { announce: 'Dumbbell Reverse Lunge. Set 1. Eight reps per side, alternating.', alternatingSides: true }),
-          rest(60, { announce: 'Rest. Set 2 of reverse lunges is next.' }),
           count('Set 2', 8, 3.2, { announce: 'Reverse Lunge. Set 2. Eight reps per side, alternating.', alternatingSides: true }),
-          rest(60, { announce: 'Rest. Set 3 of reverse lunges is next.' }),
           count('Set 3', 8, 3.2, { announce: 'Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true })
         ]
       },
@@ -29,9 +27,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 12, 4.8, { announce: 'Weighted Glute Bridge. Set 1. Three second squeeze at the top of every rep.', holdSec: 3 }),
-          rest(60, { announce: 'Rest. Set 2 of glute bridges is next.' }),
           count('Set 2', 12, 4.8, { announce: 'Weighted Glute Bridge. Set 2.', holdSec: 3 }),
-          rest(60, { announce: 'Rest. Set 3 of glute bridges is next.' }),
           count('Set 3', 12, 4.8, { announce: 'Weighted Glute Bridge. Set 3.', holdSec: 3 })
         ]
       },
@@ -43,9 +39,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 10, 3.5, { announce: 'Dumbbell Floor Press. Set 1.' }),
-          rest(60, { announce: 'Rest. Set 2 of floor press is next.' }),
           count('Set 2', 10, 3.5, { announce: 'Dumbbell Floor Press. Set 2.' }),
-          rest(60, { announce: 'Rest. Set 3 of floor press is next.' }),
           count('Set 3', 10, 3.5, { announce: 'Dumbbell Floor Press. Set 3.' })
         ]
       },
@@ -57,9 +51,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 10, 4.0, { announce: 'Lying Dumbbell Pullover. Set 1.' }),
-          rest(60, { announce: 'Rest. Set 2 of pullovers is next.' }),
           count('Set 2', 10, 4.0, { announce: 'Lying Dumbbell Pullover. Set 2.' }),
-          rest(60, { announce: 'Rest. Set 3 of pullovers is next.' }),
           count('Set 3', 10, 4.0, { announce: 'Lying Dumbbell Pullover. Set 3.' })
         ]
       },
@@ -71,11 +63,8 @@
         manualEligible: true,
         segments: [
           timed('Right side, round 1', 30, { announce: 'Suitcase Carry. Right side, round 1.' }),
-          rest(60, { announce: 'Rest. Left side, round 1 is next.' }),
           timed('Left side, round 1', 30, { announce: 'Suitcase Carry. Left side, round 1.' }),
-          rest(60, { announce: 'Rest. Right side, round 2 is next.' }),
           timed('Right side, round 2', 30, { announce: 'Suitcase Carry. Right side, round 2.' }),
-          rest(60, { announce: 'Rest. Left side, round 2 is next.' }),
           timed('Left side, round 2', 30, { announce: 'Suitcase Carry. Left side, round 2.' })
         ]
       }
@@ -92,9 +81,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 1. Eight reps per side, alternating, with longer holds.', alternatingSides: true }),
-          rest(60, { announce: 'Rest. Set 2 is next.' }),
           count('Set 2', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 2. Eight reps per side, alternating.', alternatingSides: true }),
-          rest(60, { announce: 'Rest. Set 3 is next.' }),
           count('Set 3', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true })
         ]
       },
@@ -106,9 +93,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 12, 5.6, { announce: 'Glute Bridge. Set 1. Slow controlled tempo.', holdSec: 3 }),
-          rest(60, { announce: 'Rest. Set 2 is next.' }),
           count('Set 2', 12, 5.6, { announce: 'Glute Bridge. Set 2.', holdSec: 3 }),
-          rest(60, { announce: 'Rest. Set 3 is next.' }),
           count('Set 3', 12, 5.6, { announce: 'Glute Bridge. Set 3.', holdSec: 3 })
         ]
       },
@@ -120,9 +105,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 10, 4.8, { announce: 'Floor Press Pattern. Set 1. Slower time under tension.' }),
-          rest(60, { announce: 'Rest. Set 2 is next.' }),
           count('Set 2', 10, 4.8, { announce: 'Floor Press Pattern. Set 2.' }),
-          rest(60, { announce: 'Rest. Set 3 is next.' }),
           count('Set 3', 10, 4.8, { announce: 'Floor Press Pattern. Set 3.' })
         ]
       },
@@ -134,9 +117,7 @@
         manualEligible: true,
         segments: [
           count('Set 1', 10, 5.0, { announce: 'Pullover Pattern. Set 1.' }),
-          rest(60, { announce: 'Rest. Set 2 is next.' }),
           count('Set 2', 10, 5.0, { announce: 'Pullover Pattern. Set 2.' }),
-          rest(60, { announce: 'Rest. Set 3 is next.' }),
           count('Set 3', 10, 5.0, { announce: 'Pullover Pattern. Set 3.' })
         ]
       }
