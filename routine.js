@@ -14,11 +14,11 @@
         cue: 'Torso tall. Step backward. Drive through the front heel.',
         manualEligible: true,
         segments: [
-          count('Set 1', 20, 3.2, { announce: 'Dumbbell Reverse Lunge. Set 1. Ten reps per side, alternating.' }),
+          count('Set 1', 20, 3.2, { announce: 'Dumbbell Reverse Lunge. Set 1. Twenty total reps, alternating.' }),
           rest(60, { announce: 'Rest. Set 2 of reverse lunges is next.' }),
-          count('Set 2', 20, 3.2, { announce: 'Reverse Lunge. Set 2.' }),
+          count('Set 2', 20, 3.2, { announce: 'Reverse Lunge. Set 2. Twenty total reps, alternating.' }),
           rest(60, { announce: 'Rest. Set 3 of reverse lunges is next.' }),
-          count('Set 3', 20, 3.2, { announce: 'Reverse Lunge. Set 3.' })
+          count('Set 3', 20, 3.2, { announce: 'Reverse Lunge. Set 3. Twenty total reps, alternating.' })
         ]
       },
       {
