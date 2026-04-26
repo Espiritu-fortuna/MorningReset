@@ -22,6 +22,7 @@ button, select, input, summary { font: inherit; }
 #views { position: relative; flex: 1; overflow: hidden; }
 .view { position: absolute; inset: 0; overflow-y: auto; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease; padding-bottom: 16px; }
 .view.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+#session-view { overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
 .hero-card, .panel { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .hero-card { padding: 15px; margin-bottom: 9px; }
 .compact-hero { padding-bottom: 13px; }
@@ -69,23 +70,25 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .exercise-setting-header { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 7px; }
 .exercise-setting-title { font-weight: 800; font-size: 0.92rem; }
 .exercise-setting small { color: var(--muted); display: block; margin-top: 4px; font-size: 0.72rem; }
-.session-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.session-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px; flex: 0 0 auto; }
 .progress-copy { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; color: var(--muted); font-size: 0.74rem; }
 #mode-badge { padding: 4px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-weight: 800; letter-spacing: 0.06em; }
-.giant-panel { text-align: center; padding: 12px 10px 10px; }
-.session-core { min-height: calc(100dvh - 190px); display: flex; flex-direction: column; justify-content: center; }
+.giant-panel { text-align: center; padding: 0; background: transparent; border: 0; box-shadow: none; }
+.session-core { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 .current-label { color: var(--brand); font-weight: 800; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
 #exercise-name { margin-bottom: 6px; }
 .exercise-cue { color: var(--muted); font-size: 0.86rem; line-height: 1.32; min-height: 30px; }
 .timer-wrap { padding: 8px 0 4px; }
-.timer-number { font-size: clamp(3.2rem, 20vw, 6rem); font-weight: 900; line-height: 0.9; letter-spacing: -0.05em; }
+.timer-number { font-size: clamp(3.3rem, 20vw, 6.2rem); font-weight: 900; line-height: 0.9; letter-spacing: -0.05em; }
 .timer-unit { color: var(--muted); font-weight: 800; letter-spacing: 0.12em; font-size: 0.72rem; }
 .next-copy { color: var(--brand); font-weight: 700; font-size: 0.82rem; min-height: 18px; }
 .status-panel { display: grid; gap: 8px; }
 .slim-status { padding-top: 10px; padding-bottom: 10px; }
 .status-row { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 0.84rem; }
 .status-row strong { color: var(--text); text-align: right; }
-.controls-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-top: 4px; }
+.session-circle { width: min(78vw, 360px); aspect-ratio: 1 / 1; border-radius: 50%; border: 1px solid var(--line); background: radial-gradient(circle at 50% 42%, rgba(244,197,66,0.12), rgba(20,16,10,0.96) 62%); box-shadow: 0 18px 42px rgba(0,0,0,0.34), inset 0 0 0 1px rgba(244,197,66,0.06); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 28px 24px; margin: 0 auto; }
+.session-circle .exercise-cue { max-width: 220px; }
+.controls-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-top: 0; flex: 0 0 auto; }
 .control-btn { min-height: 48px; padding: 8px; background: var(--surface-2); color: var(--text); font-weight: 800; font-size: 1.15rem; }
 .control-btn.accent { background: linear-gradient(180deg, var(--brand), var(--brand-2)); color: #231600; }
 .control-btn.danger { background: rgba(255,133,116,0.18); color: #ffe0d7; }
@@ -101,4 +104,6 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
   #app { padding-inline: 8px; }
   .panel, .hero-card { padding-left: 12px; padding-right: 12px; }
   .detail-panel { padding: 0; }
+  .session-circle { width: min(82vw, 320px); padding: 24px 20px; }
+  .timer-number { font-size: clamp(3rem, 18vw, 5.5rem); }
 }
