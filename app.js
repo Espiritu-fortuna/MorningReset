@@ -396,13 +396,7 @@ async function runWarmupToMainTransition(upcoming, token) {
 async function runAnnouncementPrep(segment, token) {
   const prepSec = Math.max(0, CFG.announcementDelaySec || 0);
   if (!prepSec) return;
-  UI.phaseBadge.textContent = segment.type === 'rest' ? 'REST' : 'READY';
-  UI.currentLabel.textContent = segment.type === 'count' ? 'Starts in' : 'Get set';
-  await runPrepCountdown(prepSec, token, 'PREP');
-  if (segment.type === 'count' || segment.type === 'timed' || segment.type === 'hold' || segment.type === 'breath') {
-    UI.phaseBadge.textContent = segment.type === 'rest' ? 'REST' : 'WORK';
-    UI.currentLabel.textContent = segment.label || 'Work';
-  }
+  await waitMs(prepSec * 1000, token);
 }
 
 async function runPrepCountdown(seconds, token, unit = 'PREP') {
@@ -411,7 +405,11 @@ async function runPrepCountdown(seconds, token, unit = 'PREP') {
     UI.timerNumber.textContent = String(remaining);
     UI.timerUnit.textContent = unit;
     let spokenMs = 0;
-    if (remaining <= Math.min(3, seconds)) spokenMs = await speak(String(remaining), true, 1.0);
+    if (remaining <= Math.min(3, seconds) && app.voiceEnabled) {
+      spokenMs = await speak(String(remaining), true, 1.0);
+    } else {
+      beep(remaining <= 3 ? 930 : 720, 0.05, 0.06);
+    }
     await waitRemaining(1000, spokenMs, token);
   }
   UI.timerNumber.textContent = '0';
@@ -442,7 +440,11 @@ async function runRepHold(segment, token) {
     UI.timerNumber.textContent = String(remaining);
     UI.timerUnit.textContent = 'HOLD';
     let spokenMs = 0;
-    if (remaining <= Math.min(3, holdSec)) spokenMs = await speak(String(remaining), true, 1.0);
+    if (remaining <= Math.min(3, holdSec) && app.voiceEnabled) {
+      spokenMs = await speak(String(remaining), true, 1.0);
+    } else {
+      beep(remaining <= 3 ? 930 : 760, 0.045, 0.055);
+    }
     await waitRemaining(1000, spokenMs, token);
   }
 }
@@ -454,7 +456,12 @@ async function runCountdownSegment(segment, token, isRest) {
     UI.timerNumber.textContent = String(remainingSec);
     UI.timerUnit.textContent = 'SECONDS';
     let spokenMs = 0;
-    if (!isRest && remainingSec <= 3) spokenMs = await speak(String(remainingSec), true, 1.0);
+    const shouldSpeak = !isRest && remainingSec <= 3 && app.voiceEnabled;
+    if (shouldSpeak) {
+      spokenMs = await speak(String(remainingSec), true, 1.0);
+    } else {
+      beep((!isRest && remainingSec <= 3) ? 930 : 720, isRest ? 0.035 : 0.045, 0.055);
+    }
     await waitRemaining(1000, spokenMs, token);
     remainingSec -= 1;
   }
@@ -642,6 +649,28 @@ function bundledAudioPath(text) {
   const manifest = app.audioManifest;
   if (/^\d+$/.test(String(text)) && manifest.numbers?.[String(text)]) return manifest.numbers[String(text)];
   return manifest.phrases?.[text] || null;
+}
+
+function beep(freq = 760, volume = 0.04, durationSec = 0.05) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!app.beepCtx) app.beepCtx = new Ctx();
+    const ctx = app.beepCtx;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSec);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + durationSec + 0.01);
+  } catch (_) {}
 }
 
 async function playBundled(path) {
