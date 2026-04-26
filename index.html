@@ -28,6 +28,10 @@
           <div class="eyebrow">OFFLINE PWA</div>
           <h1 id="routine-title">Morning routine</h1>
           <p id="routine-summary">Large-text, voice-guided training flow.</p>
+          <div class="hero-actions">
+            <button id="install-btn" class="ghost-btn hidden" type="button">Install app</button>
+            <div id="install-state" class="helper">Installable from Chrome on your Pixel.</div>
+          </div>
         </div>
 
         <div class="panel" id="preset-panel">
@@ -76,6 +80,18 @@
             </div>
           </div>
           <div id="exercise-settings" class="exercise-settings"></div>
+        </div>
+
+        <div class="panel">
+          <div class="field-row">
+            <div>
+              <div class="field-label">Last session</div>
+              <div class="helper" id="last-session-copy">No completed session saved yet.</div>
+            </div>
+          </div>
+          <div class="status-row"><span>Preset</span><strong id="last-session-preset">—</strong></div>
+          <div class="status-row"><span>Duration</span><strong id="last-session-duration">—</strong></div>
+          <div class="status-row"><span>Completed at</span><strong id="last-session-at">—</strong></div>
         </div>
 
         <button id="start-btn" class="primary-btn" type="button">Start session</button>

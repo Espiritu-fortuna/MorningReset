@@ -24,6 +24,7 @@ button, select, input { font: inherit; }
 .view.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .hero-card, .panel { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .hero-card { padding: 22px; margin-bottom: 16px; }
+.hero-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
 .panel { padding: 18px; margin-bottom: 14px; }
 .eyebrow { color: var(--brand); font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; }
 h1, h2 { margin: 0; line-height: 1; letter-spacing: -0.03em; }
@@ -51,6 +52,7 @@ input[type="range"]::-moz-range-track { height: 8px; border-radius: 999px; backg
 input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); border: 3px solid #04101b; }
 .range-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.78rem; }
 .ghost-btn { min-height: 48px; padding: 0 16px; background: var(--surface-2); color: var(--text); font-weight: 700; }
+.ghost-btn.hidden { display: none; }
 .primary-btn { width: 100%; min-height: 72px; padding: 18px 24px; background: linear-gradient(180deg, var(--brand), var(--brand-2)); color: #06101b; font-size: 1.15rem; font-weight: 900; letter-spacing: 0.04em; box-shadow: 0 18px 40px rgba(77,157,241,0.32); }
 .exercise-settings { display: flex; flex-direction: column; gap: 14px; }
 .exercise-setting { padding-top: 10px; border-top: 1px solid var(--line); }
@@ -76,6 +78,7 @@ input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; border-radius
 .control-btn { min-height: 62px; padding: 12px 14px; background: var(--surface-2); color: var(--text); font-weight: 800; }
 .control-btn.accent { background: linear-gradient(180deg, var(--brand), var(--brand-2)); color: #06101b; }
 .control-btn.danger { background: rgba(255,107,107,0.16); color: #ffd7d7; }
+.control-btn[disabled], .ghost-btn[disabled], .primary-btn[disabled] { opacity: 0.45; cursor: default; }
 .complete-view { display: flex; flex-direction: column; justify-content: center; }
 .jump-dialog { width: min(100vw - 20px, 520px); border: 1px solid var(--line); border-radius: 22px; background: #09101a; color: var(--text); padding: 0; }
 .jump-shell { padding: 18px; }

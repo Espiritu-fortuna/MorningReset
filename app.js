@@ -19,10 +19,16 @@ const UI = {
   modeManualBtn: $('mode-manual-btn'),
   paceSlider: $('pace-slider'),
   paceValue: $('pace-value'),
+  installBtn: $('install-btn'),
+  installState: $('install-state'),
   voiceName: $('voice-name'),
   testVoiceBtn: $('test-voice-btn'),
   toggleCuesBtn: $('toggle-cues-btn'),
   exerciseSettings: $('exercise-settings'),
+  lastSessionCopy: $('last-session-copy'),
+  lastSessionPreset: $('last-session-preset'),
+  lastSessionDuration: $('last-session-duration'),
+  lastSessionAt: $('last-session-at'),
   startBtn: $('start-btn'),
   homeView: $('home-view'),
   sessionView: $('session-view'),
@@ -70,6 +76,8 @@ const app = {
   session: null,
   sessionStartedAt: 0,
   currentSegmentRemainingMs: null,
+  installPromptEvent: null,
+  speechPrimed: false,
 };
 
 init();
@@ -81,6 +89,7 @@ function init() {
   bindHome();
   bindSession();
   initVoices();
+  bindInstall();
   renderHome();
   document.addEventListener('visibilitychange', handleVisibility);
 }
@@ -117,6 +126,7 @@ function bindHome() {
     renderHome();
   });
   UI.testVoiceBtn.addEventListener('click', async () => {
+    await primeSpeech();
     await speak('Voice check. Smooth and steady.', true, 1);
   });
   UI.toggleCuesBtn.addEventListener('click', () => {
@@ -131,6 +141,25 @@ function bindHome() {
   });
   UI.openJumpBtn.addEventListener('click', () => {
     if (app.session) UI.jumpDialog.showModal();
+  });
+}
+
+function bindInstall() {
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    app.installPromptEvent = event;
+    renderInstallState();
+  });
+  window.addEventListener('appinstalled', () => {
+    app.installPromptEvent = null;
+    renderInstallState(true);
+  });
+  UI.installBtn?.addEventListener('click', async () => {
+    if (!app.installPromptEvent) return;
+    app.installPromptEvent.prompt();
+    try { await app.installPromptEvent.userChoice; } catch (_) {}
+    app.installPromptEvent = null;
+    renderInstallState();
   });
 }
 
@@ -172,6 +201,8 @@ function renderHome() {
   UI.toggleCuesBtn.textContent = app.voiceEnabled ? 'Voice on' : 'Voice off';
   UI.startBtn.textContent = preset.restDay ? 'Open rest day' : 'Start session';
   renderExerciseSettings(preset);
+  renderLastSession();
+  renderInstallState();
 }
 
 function renderExerciseSettings(preset) {
@@ -233,6 +264,7 @@ async function startSession() {
   app.sessionStartedAt = Date.now();
   app.session = { preset, timeline, exerciseIndex: 0, segmentIndex: 0, completedExercises: 0 };
   UI.pauseBtn.textContent = 'Pause';
+  await primeSpeech();
   await acquireWakeLock();
   showView('session');
   renderJumpList();
@@ -409,7 +441,9 @@ function jumpExercise(index) {
   app.awaitingManual = false;
   app.session.exerciseIndex = index;
   app.session.segmentIndex = 0;
-  UI.pauseBtn.textContent = 'Pause';
+  const chosen = app.session.timeline[index];
+  app.session.pendingManualStart = Boolean(app.mode === 'manual' && chosen && chosen.phase === 'main');
+  UI.pauseBtn.textContent = app.session.pendingManualStart ? 'Start next' : 'Pause';
   runCurrentPosition(app.runnerToken).catch(() => {});
   if (UI.jumpDialog.open) UI.jumpDialog.close();
 }
@@ -441,11 +475,19 @@ function stopSession() {
 
 function completeSession() {
   const elapsed = Date.now() - app.sessionStartedAt;
-  UI.completeRoutine.textContent = app.session?.preset?.name || CFG.appName;
-  UI.completeExercises.textContent = `${app.session?.timeline?.length || 0}`;
-  UI.completeDuration.textContent = formatDuration(elapsed);
+  const summary = {
+    preset: app.session?.preset?.name || CFG.appName,
+    exercises: app.session?.timeline?.length || 0,
+    durationMs: elapsed,
+    completedAt: new Date().toISOString()
+  };
+  persistJson('lastSession', summary);
+  UI.completeRoutine.textContent = summary.preset;
+  UI.completeExercises.textContent = `${summary.exercises}`;
+  UI.completeDuration.textContent = formatDuration(summary.durationMs);
   UI.completeCopy.textContent = app.session?.preset?.restDay ? 'Rest day logged locally.' : 'Finished offline and ready to rerun anytime.';
   releaseWakeLock();
+  app.session = null;
   showView('complete');
 }
 
@@ -485,15 +527,30 @@ function initVoices() {
   speechSynthesis.addEventListener('voiceschanged', load);
 }
 
+async function primeSpeech() {
+  if (app.speechPrimed || !window.speechSynthesis) return;
+  try {
+    const warm = new SpeechSynthesisUtterance(' ');
+    warm.volume = 0;
+    warm.rate = 1;
+    warm.voice = app.selectedVoice;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(warm);
+  } catch (_) {}
+  app.speechPrimed = true;
+}
+
 async function speak(text, cancel = true, rate = 1) {
   if (!app.voiceEnabled || !window.speechSynthesis || !text) return;
+  speechSynthesis.resume?.();
   if (cancel) speechSynthesis.cancel();
   return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(text);
     u.voice = app.selectedVoice;
     u.rate = rate;
     u.pitch = 1;
-    u.onend = () => resolve();
+    u.volume = 1;
+    u.onend = () => setTimeout(resolve, 40);
     u.onerror = () => resolve();
     speechSynthesis.speak(u);
   });
@@ -512,7 +569,35 @@ function releaseWakeLock() {
 }
 
 async function handleVisibility() {
-  if (document.visibilityState === 'visible' && app.session) await acquireWakeLock();
+  if (document.visibilityState === 'visible' && app.session) {
+    await acquireWakeLock();
+    speechSynthesis.resume?.();
+  }
+}
+
+function renderInstallState(installed = false) {
+  if (!UI.installBtn || !UI.installState) return;
+  const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone;
+  const isInstalled = installed || standalone;
+  UI.installBtn.classList.toggle('hidden', !app.installPromptEvent || isInstalled);
+  UI.installState.textContent = isInstalled
+    ? 'Installed, offline-capable, and ready for home-screen launch.'
+    : (app.installPromptEvent ? 'Install is ready. Use the button above.' : 'Installable from Chrome on your Pixel.');
+}
+
+function renderLastSession() {
+  const last = loadJson('lastSession', null);
+  if (!last) {
+    UI.lastSessionCopy.textContent = 'No completed session saved yet.';
+    UI.lastSessionPreset.textContent = '—';
+    UI.lastSessionDuration.textContent = '—';
+    UI.lastSessionAt.textContent = '—';
+    return;
+  }
+  UI.lastSessionCopy.textContent = 'Saved locally on this device for a quick confidence check.';
+  UI.lastSessionPreset.textContent = last.preset || '—';
+  UI.lastSessionDuration.textContent = formatDuration(last.durationMs || 0);
+  UI.lastSessionAt.textContent = new Date(last.completedAt).toLocaleString();
 }
 
 function getExercisePace(key) {
@@ -523,6 +608,14 @@ function setExercisePace(key, val) {
 }
 function persist(key, value) {
   localStorage.setItem(storageKey(key), String(value));
+}
+function persistJson(key, value) {
+  localStorage.setItem(storageKey(key), JSON.stringify(value));
+}
+function loadJson(key, fallback) {
+  const raw = localStorage.getItem(storageKey(key));
+  if (raw === null) return fallback;
+  try { return JSON.parse(raw); } catch (_) { return fallback; }
 }
 function loadNumber(key, fallback) {
   const raw = localStorage.getItem(storageKey(key));
