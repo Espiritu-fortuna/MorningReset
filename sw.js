@@ -1,183 +1,73 @@
-const CACHE = 'morningreset-v2';
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./routine.js",
-  "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./audio/manifest.json",
-  "./audio/numbers/1.mp3",
-  "./audio/numbers/10.mp3",
-  "./audio/numbers/11.mp3",
-  "./audio/numbers/12.mp3",
-  "./audio/numbers/13.mp3",
-  "./audio/numbers/14.mp3",
-  "./audio/numbers/15.mp3",
-  "./audio/numbers/16.mp3",
-  "./audio/numbers/17.mp3",
-  "./audio/numbers/18.mp3",
-  "./audio/numbers/19.mp3",
-  "./audio/numbers/2.mp3",
-  "./audio/numbers/20.mp3",
-  "./audio/numbers/21.mp3",
-  "./audio/numbers/22.mp3",
-  "./audio/numbers/23.mp3",
-  "./audio/numbers/24.mp3",
-  "./audio/numbers/25.mp3",
-  "./audio/numbers/26.mp3",
-  "./audio/numbers/27.mp3",
-  "./audio/numbers/28.mp3",
-  "./audio/numbers/29.mp3",
-  "./audio/numbers/3.mp3",
-  "./audio/numbers/30.mp3",
-  "./audio/numbers/4.mp3",
-  "./audio/numbers/5.mp3",
-  "./audio/numbers/6.mp3",
-  "./audio/numbers/7.mp3",
-  "./audio/numbers/8.mp3",
-  "./audio/numbers/9.mp3",
-  "./audio/phrases/20-reps.mp3",
-  "./audio/phrases/alternate-sides-gentle-pull-toward-the-chest.mp3",
-  "./audio/phrases/alternating-30-sec.mp3",
-  "./audio/phrases/alternating.mp3",
-  "./audio/phrases/arm-circles-backward.mp3",
-  "./audio/phrases/arm-circles-forward.mp3",
-  "./audio/phrases/arm-circles.mp3",
-  "./audio/phrases/backward-10-reps.mp3",
-  "./audio/phrases/backward-30-sec.mp3",
-  "./audio/phrases/backward.mp3",
-  "./audio/phrases/bodyweight-floor-press-pattern.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge-set-1-eight-reps-per-side-alternating-with-longer-holds.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge-set-1-hold-each-rep-a-little-longer.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge-set-2-eight-reps-per-side-alternating.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge-set-2.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge-set-3-eight-reps-per-side-alternating.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge-set-3.mp3",
-  "./audio/phrases/bodyweight-reverse-lunge.mp3",
-  "./audio/phrases/controlled-forward-circles.mp3",
-  "./audio/phrases/dumbbell-floor-press-set-1.mp3",
-  "./audio/phrases/dumbbell-floor-press-set-2.mp3",
-  "./audio/phrases/dumbbell-floor-press-set-3.mp3",
-  "./audio/phrases/dumbbell-floor-press.mp3",
-  "./audio/phrases/dumbbell-reverse-lunge-set-1-eight-reps-per-side-alternating.mp3",
-  "./audio/phrases/dumbbell-reverse-lunge-set-1-ten-reps-per-side-alternating.mp3",
-  "./audio/phrases/dumbbell-reverse-lunge-set-1-twenty-total-reps-alternating.mp3",
-  "./audio/phrases/dumbbell-reverse-lunge.mp3",
-  "./audio/phrases/dumbbell-suitcase-carry.mp3",
-  "./audio/phrases/elbows-touch-the-floor-then-press-shoulder-blades-stay-squeezed.mp3",
-  "./audio/phrases/exhale.mp3",
-  "./audio/phrases/floor-press-pattern-set-1-slower-time-under-tension.mp3",
-  "./audio/phrases/floor-press-pattern-set-2.mp3",
-  "./audio/phrases/floor-press-pattern-set-3.mp3",
-  "./audio/phrases/forward-10-reps.mp3",
-  "./audio/phrases/forward-30-sec.mp3",
-  "./audio/phrases/forward.mp3",
-  "./audio/phrases/glute-bridge-light-day.mp3",
-  "./audio/phrases/glute-bridge-set-1-slow-controlled-tempo.mp3",
-  "./audio/phrases/glute-bridge-set-2.mp3",
-  "./audio/phrases/glute-bridge-set-3.mp3",
-  "./audio/phrases/heel-raises.mp3",
-  "./audio/phrases/inhale.mp3",
-  "./audio/phrases/left-first-direction.mp3",
-  "./audio/phrases/left-forward-10-reps.mp3",
-  "./audio/phrases/left-reverse-10-reps.mp3",
-  "./audio/phrases/left-reverse-direction.mp3",
-  "./audio/phrases/left-side-reverse-direction.mp3",
-  "./audio/phrases/left-side-round-1.mp3",
-  "./audio/phrases/left-side-round-2.mp3",
-  "./audio/phrases/lift-and-lower-without-rushing.mp3",
-  "./audio/phrases/longer-stretch-and-longer-return-no-suitcase-carry-on-day-6.mp3",
-  "./audio/phrases/lying-dumbbell-pullover-set-1.mp3",
-  "./audio/phrases/lying-dumbbell-pullover-set-2.mp3",
-  "./audio/phrases/lying-dumbbell-pullover-set-3.mp3",
-  "./audio/phrases/lying-dumbbell-pullover.mp3",
-  "./audio/phrases/posterior-pelvic-tilt-first-longer-squeeze-at-the-top.mp3",
-  "./audio/phrases/pullover-pattern-light-day.mp3",
-  "./audio/phrases/pullover-pattern-set-1.mp3",
-  "./audio/phrases/pullover-pattern-set-2.mp3",
-  "./audio/phrases/pullover-pattern-set-3.mp3",
-  "./audio/phrases/raise-the-knee-and-draw-smooth-circles.mp3",
-  "./audio/phrases/rest-left-side-round-1-is-next.mp3",
-  "./audio/phrases/rest-left-side-round-2-is-next.mp3",
-  "./audio/phrases/rest-right-side-round-2-is-next.mp3",
-  "./audio/phrases/rest-set-2-is-next.mp3",
-  "./audio/phrases/rest-set-2-of-floor-press-is-next.mp3",
-  "./audio/phrases/rest-set-2-of-glute-bridges-is-next.mp3",
-  "./audio/phrases/rest-set-2-of-pullovers-is-next.mp3",
-  "./audio/phrases/rest-set-2-of-reverse-lunges-is-next.mp3",
-  "./audio/phrases/rest-set-3-is-next.mp3",
-  "./audio/phrases/rest-set-3-of-floor-press-is-next.mp3",
-  "./audio/phrases/rest-set-3-of-glute-bridges-is-next.mp3",
-  "./audio/phrases/rest-set-3-of-pullovers-is-next.mp3",
-  "./audio/phrases/rest-set-3-of-reverse-lunges-is-next.mp3",
-  "./audio/phrases/reverse-direction.mp3",
-  "./audio/phrases/reverse-lunge-set-2-eight-reps-per-side-alternating.mp3",
-  "./audio/phrases/reverse-lunge-set-2-twenty-total-reps-alternating.mp3",
-  "./audio/phrases/reverse-lunge-set-2.mp3",
-  "./audio/phrases/reverse-lunge-set-3-eight-reps-per-side-alternating.mp3",
-  "./audio/phrases/reverse-lunge-set-3-twenty-total-reps-alternating.mp3",
-  "./audio/phrases/reverse-lunge-set-3.mp3",
-  "./audio/phrases/reverse-with-the-same-control.mp3",
-  "./audio/phrases/right-first-direction.mp3",
-  "./audio/phrases/right-forward-10-reps.mp3",
-  "./audio/phrases/right-reverse-10-reps.mp3",
-  "./audio/phrases/right-reverse-direction.mp3",
-  "./audio/phrases/right-side-first-direction.mp3",
-  "./audio/phrases/right-side-reverse-direction.mp3",
-  "./audio/phrases/right-side-round-1.mp3",
-  "./audio/phrases/right-side-round-2.mp3",
-  "./audio/phrases/rise-onto-the-balls-of-the-feet-control-down.mp3",
-  "./audio/phrases/same-leg-reverse-direction.mp3",
-  "./audio/phrases/same-pattern-slower-control-longer-holds-at-the-bottom.mp3",
-  "./audio/phrases/same-side-reverse-direction.mp3",
-  "./audio/phrases/set-1.mp3",
-  "./audio/phrases/set-2.mp3",
-  "./audio/phrases/set-3.mp3",
-  "./audio/phrases/shoulder-rolls-and-shrugs.mp3",
-  "./audio/phrases/shoulder-rolls-backward.mp3",
-  "./audio/phrases/shoulder-rolls-forward.mp3",
-  "./audio/phrases/shoulder-rolls.mp3",
-  "./audio/phrases/shoulder-shrugs.mp3",
-  "./audio/phrases/shrugs-10-reps.mp3",
-  "./audio/phrases/slow-arc-over-the-head-slight-bend-in-the-arms-deep-stretch-then-pull-back.mp3",
-  "./audio/phrases/small-to-large-circles.mp3",
-  "./audio/phrases/standing-hip-circles-left-side-first-direction.mp3",
-  "./audio/phrases/standing-hip-circles.mp3",
-  "./audio/phrases/standing-knee-pulls-alternating.mp3",
-  "./audio/phrases/standing-knee-pulls.mp3",
-  "./audio/phrases/suitcase-carry-left-side-round-1.mp3",
-  "./audio/phrases/suitcase-carry-left-side-round-2.mp3",
-  "./audio/phrases/suitcase-carry-right-side-round-1.mp3",
-  "./audio/phrases/suitcase-carry-right-side-round-2.mp3",
-  "./audio/phrases/switch-sides-first-direction.mp3",
-  "./audio/phrases/ten-forward-rolls-ten-backward-rolls-ten-shrugs.mp3",
-  "./audio/phrases/thirty-total-reps.mp3",
-  "./audio/phrases/torso-tall-step-backward-drive-through-the-front-heel.mp3",
-  "./audio/phrases/tuck-tailbone-first-lift-hard-squeeze-no-hyperextension.mp3",
-  "./audio/phrases/twenty-reps.mp3",
-  "./audio/phrases/use-the-same-movement-pattern-with-no-dumbbells-control-the-pause-on-the-floor.mp3",
-  "./audio/phrases/voice-check-smooth-and-steady.mp3",
-  "./audio/phrases/walk-tall-no-leaning-keep-hips-and-shoulders-level.mp3",
-  "./audio/phrases/warm-up-arm-circles-forward.mp3",
-  "./audio/phrases/weighted-glute-bridge-set-1-three-second-squeeze-at-the-top-of-every-rep.mp3",
-  "./audio/phrases/weighted-glute-bridge-set-2.mp3",
-  "./audio/phrases/weighted-glute-bridge-set-3.mp3",
-  "./audio/phrases/weighted-glute-bridge.mp3"
+const CACHE = 'morningreset-v3';
+const SHELL = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './routine.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './audio/manifest.json'
 ];
+const APP_SHELL = new Set(SHELL.map((path) => new URL(path, self.location.origin + self.location.pathname).pathname));
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
+
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(caches.match(event.request).then(hit => hit || fetch(event.request).then((res) => {
-    const copy = res.clone();
-    caches.open(CACHE).then(cache => cache.put(event.request, copy));
-    return res;
-  }).catch(() => caches.match('./index.html'))));
+
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isShellAsset = APP_SHELL.has(url.pathname);
+  const isAudioAsset = url.pathname.includes('/audio/');
+
+  if (isShellAsset) {
+    event.respondWith(networkFirst(event.request, './index.html'));
+    return;
+  }
+
+  if (isAudioAsset) {
+    event.respondWith(cacheFirst(event.request, './index.html'));
+    return;
+  }
+
+  event.respondWith(networkFirst(event.request, './index.html'));
 });
+
+async function networkFirst(request, fallbackPath) {
+  const cache = await caches.open(CACHE);
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response && response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (_) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return caches.match(fallbackPath);
+  }
+}
+
+async function cacheFirst(request, fallbackPath) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (_) {
+    return caches.match(fallbackPath);
+  }
+}
