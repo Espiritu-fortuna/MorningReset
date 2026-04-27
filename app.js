@@ -514,6 +514,7 @@ function jumpExercise(index) {
   app.runnerToken += 1;
   app.paused = false;
   app.awaitingManual = false;
+  stopActiveSpeech();
   resetHoldDisplay();
   app.session.exerciseIndex = index;
   app.session.segmentIndex = 0;
@@ -543,11 +544,7 @@ function stopSession() {
   app.paused = false;
   app.awaitingManual = false;
   resetHoldDisplay();
-  speechSynthesis?.cancel?.();
-  if (app.currentAudio) {
-    try { app.currentAudio.pause(); } catch (_) {}
-    app.currentAudio = null;
-  }
+  stopActiveSpeech();
   releaseWakeLock();
   app.session = null;
   UI.openJumpBtn.disabled = true;
@@ -580,6 +577,7 @@ function skipSegment() {
   app.runnerToken += 1;
   app.paused = false;
   app.awaitingManual = false;
+  stopActiveSpeech();
   resetHoldDisplay();
   stepForward();
   setPauseButtonState(app.session?.pendingManualStart ? 'manual' : 'pause');
@@ -591,6 +589,14 @@ function resetHoldDisplay() {
   UI.holdWrap.classList.add('hidden');
   UI.holdNumber.textContent = '';
   UI.holdUnit.textContent = '';
+}
+
+function stopActiveSpeech() {
+  speechSynthesis?.cancel?.();
+  if (app.currentAudio) {
+    try { app.currentAudio.pause(); } catch (_) {}
+    app.currentAudio = null;
+  }
 }
 
 function showView(which) {
@@ -751,17 +757,14 @@ async function playBundled(path) {
 
 async function speak(text, cancel = true, rate = 1) {
   if (!app.voiceEnabled || !text) return 0;
+  if (cancel) stopActiveSpeech();
   const bundled = bundledAudioPath(text);
   if (bundled) {
-    if (app.currentAudio && cancel) {
-      try { app.currentAudio.pause(); } catch (_) {}
-      app.currentAudio = null;
-    }
     return playBundled(bundled);
   }
+  if (app.audioManifest) return 0;
   if (!window.speechSynthesis) return 0;
   speechSynthesis.resume?.();
-  if (cancel) speechSynthesis.cancel();
   return new Promise((resolve) => {
     const startedAt = Date.now();
     const u = new SpeechSynthesisUtterance(text);
