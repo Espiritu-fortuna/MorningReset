@@ -16,7 +16,8 @@
         segments: [
           count('Set 1', 8, 3.2, { announce: 'Dumbbell Reverse Lunge. Set 1. Eight reps per side, alternating.', alternatingSides: true }),
           count('Set 2', 8, 3.2, { announce: 'Reverse Lunge. Set 2. Eight reps per side, alternating.', alternatingSides: true }),
-          count('Set 3', 8, 3.2, { announce: 'Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true })
+          count('Set 3', 8, 3.2, { announce: 'Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true }),
+          count('Set 4', 8, 3.2, { announce: 'Reverse Lunge. Set 4. Left side only.', side: 'Left' })
         ]
       },
       {
@@ -82,7 +83,8 @@
         segments: [
           count('Set 1', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 1. Eight reps per side, alternating, with longer holds.', alternatingSides: true }),
           count('Set 2', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 2. Eight reps per side, alternating.', alternatingSides: true }),
-          count('Set 3', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true })
+          count('Set 3', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 3. Eight reps per side, alternating.', alternatingSides: true }),
+          count('Set 4', 8, 4.6, { announce: 'Bodyweight Reverse Lunge. Set 4. Left side only.', side: 'Left' })
         ]
       },
       {

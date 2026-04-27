@@ -407,7 +407,8 @@ async function runCountSegment(exercise, segment, token) {
   const pace = app.globalPace * getExercisePace(exercise.key);
   const perRepMs = Math.max(450, (segment.paceSec * 1000) / pace);
   const alternatingSides = Boolean(segment.alternatingSides);
-  const sides = alternatingSides ? ['Left', 'Right'] : [null];
+  const fixedSide = segment.side || null;
+  const sides = alternatingSides ? ['Left', 'Right'] : [fixedSide];
   const baseLabel = segment.label || exercise.name;
   syncHoldDisplay(segment);
   clearHoldCounter();
@@ -845,7 +846,7 @@ function setPauseButtonState(mode) {
 function segmentDescriptor(segment) {
   if (!segment) return '';
   if (segment.type === 'count') {
-    const repsText = segment.alternatingSides ? `${segment.reps} reps per side` : `${segment.reps} reps`;
+    const repsText = segment.alternatingSides ? `${segment.reps} reps per side` : `${segment.reps} reps${segment.side ? ` · ${segment.side}` : ''}`;
     return `${repsText}${segment.holdSec ? ` · ${segment.holdSec}s hold` : ''}`;
   }
   if (segment.type === 'timed' || segment.type === 'hold' || segment.type === 'rest') return `${segment.durationSec}s`;
