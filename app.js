@@ -6,6 +6,9 @@ if ('serviceWorker' in navigator) {
 
 const CFG = window.ROUTINE_CONFIG;
 const $ = (id) => document.getElementById(id);
+const AUDIO_PLAYBACK_VOLUME = 0.68;
+const SPEECH_VOLUME = 0.72;
+const BEEP_GAIN_MULTIPLIER = 1.7;
 
 const UI = {
   brandName: $('brand-name'),
@@ -415,11 +418,14 @@ async function runCountSegment(exercise, segment, token) {
       UI.timerNumber.textContent = String(rep);
       UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
       UI.currentLabel.textContent = side ? `${baseLabel} · ${side}` : baseLabel;
-      if (segment.holdSec) {
+      if (alternatingSides) {
+        await speakAlternatingCue(rep, side, true);
+        if (segment.holdSec) {
+          await runRepHold(segment, token);
+        }
+      } else if (segment.holdSec) {
         await speak(String(rep), true, 1.05);
         await runRepHold(segment, token);
-      } else if (alternatingSides) {
-        beep(860, 0.12, 0.07);
       } else {
         await speak(String(rep), true, 1.05);
       }
@@ -691,6 +697,14 @@ function resolveLeadInSpeech(preset) {
   return fallback;
 }
 
+function alternatingCueText(rep, side) {
+  return `${rep} ${side}`.trim();
+}
+
+async function speakAlternatingCue(rep, side, cancel = true) {
+  return speak(alternatingCueText(rep, side), cancel, 1.02);
+}
+
 function fireTimerCue(value, options = {}) {
   const { loudFinal = false, voiceFinal = false, rest = false } = options;
   const finalWindow = loudFinal ? 3 : 0;
@@ -700,7 +714,7 @@ function fireTimerCue(value, options = {}) {
     return;
   }
   const freq = isFinal ? 960 : (rest ? 640 : 780);
-  const volume = isFinal ? 0.16 : (rest ? 0.08 : 0.12);
+  const volume = isFinal ? 0.18 : (rest ? 0.1 : 0.14);
   const duration = isFinal ? 0.09 : 0.07;
   beep(freq, volume, duration);
 }
@@ -712,6 +726,7 @@ function speakDetached(text) {
     try {
       const audio = new Audio(bundled);
       audio.preload = 'auto';
+      audio.volume = AUDIO_PLAYBACK_VOLUME;
       audio.play().catch(() => {});
       return;
     } catch (_) {}
@@ -722,7 +737,7 @@ function speakDetached(text) {
     u.voice = app.selectedVoice;
     u.rate = 1;
     u.pitch = 1;
-    u.volume = 1;
+    u.volume = SPEECH_VOLUME;
     speechSynthesis.speak(u);
   } catch (_) {}
 }
@@ -740,7 +755,7 @@ function beep(freq = 760, volume = 0.1, durationSec = 0.08) {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, now);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(volume, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(Math.min(0.35, volume * BEEP_GAIN_MULTIPLIER), now + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSec);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -756,6 +771,7 @@ async function playBundled(path) {
       const audio = new Audio(path);
       app.currentAudio = audio;
       audio.preload = 'auto';
+      audio.volume = AUDIO_PLAYBACK_VOLUME;
       audio.onended = () => {
         if (app.currentAudio === audio) app.currentAudio = null;
         resolve(Date.now() - startedAt);
@@ -791,7 +807,7 @@ async function speak(text, cancel = true, rate = 1) {
     u.voice = app.selectedVoice;
     u.rate = rate;
     u.pitch = 1;
-    u.volume = 1;
+    u.volume = SPEECH_VOLUME;
     u.onend = () => setTimeout(() => resolve(Date.now() - startedAt), 40);
     u.onerror = () => resolve(0);
     speechSynthesis.speak(u);
