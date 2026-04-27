@@ -270,7 +270,7 @@ async function startSession() {
 
 async function runLeadIn(token) {
   const preset = app.session?.preset || {};
-  const introText = preset.introSpeech || CFG.introSpeech || preset.name || CFG.appName;
+  const introText = resolveLeadInSpeech(preset);
   setDisplay({ phase: 'READY', label: '', name: preset.name || CFG.appName, cue: 'Get set.', number: '', unit: '', next: '' });
   hideHoldDisplay();
   const spokenMs = await speak(introText, true, 1);
@@ -680,6 +680,15 @@ function bundledAudioPath(text) {
   const manifest = app.audioManifest;
   if (/^\d+$/.test(String(text)) && manifest.numbers?.[String(text)]) return manifest.numbers[String(text)];
   return manifest.phrases?.[text] || null;
+}
+
+function resolveLeadInSpeech(preset) {
+  const preferred = preset.introSpeech || CFG.introSpeech || preset.name || CFG.appName;
+  if (!app.audioManifest || bundledAudioPath(preferred)) return preferred;
+  const firstExercise = app.session?.timeline?.[0] || null;
+  const firstSegment = firstExercise?.segments?.[0] || null;
+  const fallback = firstSegment?.announce || firstExercise?.name || preferred;
+  return fallback;
 }
 
 function fireTimerCue(value, options = {}) {
