@@ -225,7 +225,7 @@ function renderExerciseSettings(preset) {
         </div>
         <strong>${pace.toFixed(2)}×</strong>
       </div>
-      <input type="range" min="0.75" max="1.35" step="0.05" value="${pace.toFixed(2)}" data-key="${exercise.key}" />
+      <input type="range" min="0.50" max="1.75" step="0.05" value="${pace.toFixed(2)}" data-key="${exercise.key}" />
     `;
     wrap.querySelector('input').addEventListener('input', (e) => {
       setExercisePace(exercise.key, parseFloat(e.target.value));
