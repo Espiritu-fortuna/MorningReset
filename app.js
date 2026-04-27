@@ -407,7 +407,7 @@ async function runCountSegment(exercise, segment, token) {
   const pace = app.globalPace * getExercisePace(exercise.key);
   const perRepMs = Math.max(450, (segment.paceSec * 1000) / pace);
   const alternatingSides = Boolean(segment.alternatingSides);
-  const sides = alternatingSides ? ['Right', 'Left'] : [null];
+  const sides = alternatingSides ? ['Left', 'Right'] : [null];
   const baseLabel = segment.label || exercise.name;
   syncHoldDisplay(segment);
   clearHoldCounter();
@@ -419,7 +419,7 @@ async function runCountSegment(exercise, segment, token) {
       UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
       UI.currentLabel.textContent = side ? `${baseLabel} · ${side}` : baseLabel;
       if (alternatingSides) {
-        await speakAlternatingCue(rep, side, true);
+        await speak(side || '', true, 1.02);
         if (segment.holdSec) {
           await runRepHold(segment, token);
         }
@@ -697,13 +697,6 @@ function resolveLeadInSpeech(preset) {
   return fallback;
 }
 
-function alternatingCueText(rep, side) {
-  return `${rep} ${side}`.trim();
-}
-
-async function speakAlternatingCue(rep, side, cancel = true) {
-  return speak(alternatingCueText(rep, side), cancel, 1.02);
-}
 
 function fireTimerCue(value, options = {}) {
   const { loudFinal = false, voiceFinal = false, rest = false } = options;
