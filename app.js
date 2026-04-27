@@ -22,6 +22,8 @@ const UI = {
   modeManualBtn: $('mode-manual-btn'),
   paceSlider: $('pace-slider'),
   paceValue: $('pace-value'),
+  restSlider: $('rest-slider'),
+  restValue: $('rest-value'),
   voiceName: $('voice-name'),
   testVoiceBtn: $('test-voice-btn'),
   toggleCuesBtn: $('toggle-cues-btn'),
@@ -68,6 +70,7 @@ const app = {
   selectedPresetId: CFG.presets?.[0]?.id || 'default',
   mode: 'auto',
   globalPace: loadNumber('globalPace', CFG.defaultGlobalPace || 1),
+  globalRestSec: loadNumber('globalRestSec', CFG.defaultRestSec || 60),
   voiceEnabled: loadBool('voiceEnabled', true),
   voices: [],
   selectedVoice: null,
@@ -127,6 +130,12 @@ function bindHome() {
   UI.paceSlider.addEventListener('input', () => {
     app.globalPace = parseFloat(UI.paceSlider.value);
     persist('globalPace', app.globalPace);
+    renderHome();
+  });
+  UI.restSlider.value = String(app.globalRestSec);
+  UI.restSlider.addEventListener('input', () => {
+    app.globalRestSec = parseInt(UI.restSlider.value, 10);
+    persist('globalRestSec', app.globalRestSec);
     renderHome();
   });
   UI.testVoiceBtn.addEventListener('click', async () => {
@@ -191,6 +200,7 @@ function renderHome() {
   UI.modeManualBtn.classList.toggle('active', app.mode === 'manual');
   UI.modeBadge.textContent = app.mode.toUpperCase();
   UI.paceValue.textContent = `${app.globalPace.toFixed(2)}×`;
+  UI.restValue.textContent = `${app.globalRestSec}s`;
   UI.toggleCuesBtn.textContent = app.voiceEnabled ? 'Voice on' : 'Voice off';
   UI.startBtn.textContent = preset.restDay ? '☾ Open rest day' : '▶ Start session';
   UI.openJumpBtn.disabled = true;
@@ -241,7 +251,7 @@ function buildTimeline(preset) {
     const current = base[i];
     const next = base[i + 1];
     if (current.phase === 'main' && next.phase === 'main') {
-      current.segments.push({ type: 'rest', durationSec: CFG.defaultRestSec || 60, label: 'Exercise break', announce: `Next: ${next.name}. Rest starts now.` });
+      current.segments.push({ type: 'rest', durationSec: app.globalRestSec || CFG.defaultRestSec || 60, label: 'Exercise break', announce: `Next: ${next.name}. Rest starts now.` });
     }
   }
   return base;
