@@ -9,6 +9,8 @@ const $ = (id) => document.getElementById(id);
 const AUDIO_PLAYBACK_VOLUME = 0.68;
 const SPEECH_VOLUME = 0.72;
 const BEEP_GAIN_MULTIPLIER = 1.7;
+const HOLD_ENTRY_GAP_MS = 350;
+const REP_SIDE_GAP_MS = 180;
 
 const UI = {
   brandName: $('brand-name'),
@@ -85,6 +87,7 @@ const app = {
   speechPrimed: false,
   audioManifest: null,
   currentAudio: null,
+  currentAudioCancel: null,
 };
 
 init();
@@ -320,6 +323,7 @@ async function runCurrentPosition(token) {
   if (segment.type === 'rest') {
     await speak(segment.announce || `Rest. ${segment.label || ''}`.trim(), true, 1);
     await runCountdownSegment(segment, token, true);
+    ensureAlive(token);
     stepForward();
     return runCurrentPosition(token);
   }
@@ -335,6 +339,7 @@ async function runCurrentPosition(token) {
     await runBreathSegment(segment, token);
   }
 
+  ensureAlive(token);
   stepForward();
   return runCurrentPosition(token);
 }
@@ -430,9 +435,14 @@ async function runCountSegment(exercise, segment, token) {
       UI.timerUnit.textContent = side ? side.toUpperCase() : 'REPS';
       UI.currentLabel.textContent = side ? `${baseLabel} · ${side}` : baseLabel;
       if (alternatingSides) {
-        await speak(side || '', true, 1.02);
         if (segment.holdSec) {
+          await speak(String(rep), true, 1.05);
+          ensureAlive(token);
+          await waitMs(REP_SIDE_GAP_MS, token);
+          await speak(side || '', true, 1.02);
           await runRepHold(segment, token);
+        } else {
+          await speak(side || '', true, 1.02);
         }
       } else if (segment.holdSec) {
         await speak(String(rep), true, 1.05);
@@ -450,6 +460,8 @@ async function runCountSegment(exercise, segment, token) {
 async function runRepHold(segment, token) {
   const holdSec = Math.max(1, Math.round(segment.holdSec));
   syncHoldDisplay(segment);
+  UI.holdNumber.textContent = String(holdSec);
+  await waitMs(HOLD_ENTRY_GAP_MS, token);
   for (let remaining = holdSec; remaining > 0; remaining -= 1) {
     ensureAlive(token);
     UI.holdNumber.textContent = String(remaining);
@@ -622,6 +634,12 @@ function hideHoldDisplay() {
 
 function stopActiveSpeech() {
   speechSynthesis?.cancel?.();
+  if (app.currentAudioCancel) {
+    const cancel = app.currentAudioCancel;
+    app.currentAudioCancel = null;
+    cancel();
+    return;
+  }
   if (app.currentAudio) {
     try { app.currentAudio.pause(); } catch (_) {}
     app.currentAudio = null;
@@ -771,25 +789,39 @@ function beep(freq = 760, volume = 0.1, durationSec = 0.08) {
 async function playBundled(path) {
   return new Promise((resolve) => {
     const startedAt = Date.now();
+    let settled = false;
+    const finish = (elapsedMs = 0, audio = null) => {
+      if (settled) return;
+      settled = true;
+      if (!audio || app.currentAudio === audio) app.currentAudio = null;
+      app.currentAudioCancel = null;
+      resolve(elapsedMs);
+    };
     try {
       const audio = new Audio(path);
       app.currentAudio = audio;
+      app.currentAudioCancel = () => {
+        try {
+          audio.onended = null;
+          audio.onerror = null;
+          audio.pause();
+        } catch (_) {}
+        finish(0, audio);
+      };
       audio.preload = 'auto';
       audio.volume = AUDIO_PLAYBACK_VOLUME;
       audio.onended = () => {
-        if (app.currentAudio === audio) app.currentAudio = null;
-        resolve(Date.now() - startedAt);
+        finish(Date.now() - startedAt, audio);
       };
       audio.onerror = () => {
-        if (app.currentAudio === audio) app.currentAudio = null;
-        resolve(0);
+        finish(0, audio);
       };
       audio.play().catch(() => {
-        if (app.currentAudio === audio) app.currentAudio = null;
-        resolve(0);
+        finish(0, audio);
       });
     } catch (_) {
       app.currentAudio = null;
+      app.currentAudioCancel = null;
       resolve(0);
     }
   });

@@ -1,4 +1,4 @@
-const CACHE = 'morningreset-v3';
+const CACHE = 'morningreset-v4';
 const SHELL = [
   './',
   './index.html',
@@ -13,7 +13,12 @@ const SHELL = [
 const APP_SHELL = new Set(SHELL.map((path) => new URL(path, self.location.origin + self.location.pathname).pathname));
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(SHELL);
+    await precacheManifestAudio(cache);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
@@ -45,6 +50,26 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(networkFirst(event.request, './index.html'));
 });
+
+function normalizeAssetPath(path) {
+  return path.startsWith('./') ? path : `./${path.replace(/^\/+/, '')}`;
+}
+
+async function precacheManifestAudio(cache) {
+  try {
+    const response = await fetch('./audio/manifest.json', { cache: 'no-store' });
+    if (!response.ok) return;
+    const manifest = await response.json();
+    const audioAssets = [
+      ...Object.values(manifest?.phrases || {}),
+      ...Object.values(manifest?.numbers || {})
+    ].map(normalizeAssetPath);
+    const uniqueAssets = [...new Set(audioAssets)];
+    if (uniqueAssets.length) {
+      await cache.addAll(uniqueAssets);
+    }
+  } catch (_) {}
+}
 
 async function networkFirst(request, fallbackPath) {
   const cache = await caches.open(CACHE);
