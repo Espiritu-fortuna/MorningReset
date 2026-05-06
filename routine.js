@@ -155,7 +155,7 @@
       {
         id: 'standard',
         name: 'Standard morning',
-        introSpeech: 'Standard morning. Starting with arm circles forward.',
+        introSpeech: 'Standard morning. Warm-up first, then loaded work.',
         note: 'Default 30-minute routine. Warm-up plus loaded work.',
         summary: 'Warm-up plus 5 loaded exercises.',
         warmups,
@@ -164,7 +164,7 @@
       {
         id: 'day6',
         name: 'Day 6 lighter',
-        introSpeech: 'Day 6 lighter. Starting with arm circles forward.',
+        introSpeech: 'Day 6 lighter. Warm-up first, then lighter bodyweight work.',
         note: 'Bodyweight only. Longer holds, no suitcase carry.',
         summary: 'Lighter bodyweight version with slower time under tension.',
         warmups,

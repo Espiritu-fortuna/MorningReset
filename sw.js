@@ -1,4 +1,4 @@
-const CACHE = 'morningreset-v6';
+const CACHE = 'morningreset-v7';
 const SHELL = [
   './',
   './index.html',
