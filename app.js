@@ -11,6 +11,7 @@ const SPEECH_VOLUME = 0.72;
 const BEEP_GAIN_MULTIPLIER = 1.7;
 const HOLD_ENTRY_GAP_MS = 350;
 const REP_SIDE_GAP_MS = 180;
+const BUNDLED_AUDIO_MAX_MS = 12000;
 
 const UI = {
   brandName: $('brand-name'),
@@ -790,9 +791,14 @@ async function playBundled(path) {
   return new Promise((resolve) => {
     const startedAt = Date.now();
     let settled = false;
-    const finish = (elapsedMs = 0, audio = null) => {
+    let watchdog = null;
+    const finish = (elapsedMs = 0, audio = null, stopAudio = false) => {
       if (settled) return;
       settled = true;
+      if (watchdog) clearTimeout(watchdog);
+      if (stopAudio && audio) {
+        try { audio.pause(); } catch (_) {}
+      }
       if (!audio || app.currentAudio === audio) app.currentAudio = null;
       app.currentAudioCancel = null;
       resolve(elapsedMs);
@@ -800,6 +806,7 @@ async function playBundled(path) {
     try {
       const audio = new Audio(path);
       app.currentAudio = audio;
+      watchdog = setTimeout(() => finish(Math.max(0, Date.now() - startedAt), audio, true), BUNDLED_AUDIO_MAX_MS);
       app.currentAudioCancel = () => {
         try {
           audio.onended = null;
@@ -814,10 +821,10 @@ async function playBundled(path) {
         finish(Date.now() - startedAt, audio);
       };
       audio.onerror = () => {
-        finish(0, audio);
+        finish(0, audio, true);
       };
       audio.play().catch(() => {
-        finish(0, audio);
+        finish(0, audio, true);
       });
     } catch (_) {
       app.currentAudio = null;
